@@ -8,16 +8,20 @@ pkgs.sbt.mkDerivation {
   version = "0.1";
 
   # see https://github.com/zaninime/sbt-derivation
-  # basically, when changing dependencies:
-  # 1. reset this to 0
+  # basically, when changing sbt dependencies:
+  # 1. reset this to "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
   # 2. let Nix compute hash
   # 3. use computed hash here and re-run build
-  depsSha256 = "9qea6+Ui7NdZ1f3iwRp1x0w0P7KJp4eQACaB/5vyYX8=";
+  depsSha256 = "6f331FetFhLR9OYIJodnS5MyE38wzwoxDNqoYM3Zyi0=";
 
   src = ./.;
 
   buildPhase = ''
-    sbt package
+    sbt assembly
+  '';
+
+  checkPhase = ''
+    sbt test
   '';
 
   installPhase = ''
