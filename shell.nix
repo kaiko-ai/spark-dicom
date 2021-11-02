@@ -9,7 +9,8 @@ pkgs.mkShell {
     pkgs.niv
 
     # JVM & Scala
-    pkgs.jdk17
+    pkgs.jdk11
     pkgs.sbt
+    pkgs.scalafmt
   ];
 }
