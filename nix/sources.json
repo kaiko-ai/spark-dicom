@@ -1,0 +1,38 @@
+{
+    "niv": {
+        "branch": "master",
+        "description": "Easy dependency management for Nix projects",
+        "homepage": "https://github.com/nmattia/niv",
+        "owner": "nmattia",
+        "repo": "niv",
+        "rev": "65a61b147f307d24bfd0a5cd56ce7d7b7cc61d2e",
+        "sha256": "17mirpsx5wyw262fpsd6n6m47jcgw8k2bwcp1iwdnrlzy4dhcgqh",
+        "type": "tarball",
+        "url": "https://github.com/nmattia/niv/archive/65a61b147f307d24bfd0a5cd56ce7d7b7cc61d2e.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "nixpkgs": {
+        "branch": "master",
+        "description": "Nix Packages collection",
+        "homepage": "",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "b67e752c29f18a0ca5534a07661366d6a2c2e649",
+        "sha256": "1n47f7r8cm9pcsz7vl4nxjfvs0fgzvcmjda5h0inz3yx9vghp5xm",
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs/archive/b67e752c29f18a0ca5534a07661366d6a2c2e649.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "sbt-derivation": {
+        "branch": "master",
+        "description": "mkDerivation for sbt, similar to buildGoModule",
+        "homepage": null,
+        "owner": "zaninime",
+        "repo": "sbt-derivation",
+        "rev": "920b6f187937493371e2b1687261017e6e014cf1",
+        "sha256": "0apg8mk7bzq418c1jyq5s5c3sp6bh4smirwxi29dhbnyp8q9ddv7",
+        "type": "tarball",
+        "url": "https://github.com/zaninime/sbt-derivation/archive/920b6f187937493371e2b1687261017e6e014cf1.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    }
+}
