@@ -5,6 +5,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.io.BufferedSource
 import scala.io.Source
+import ai.kaiko.spark.dicom.DicomFileFormat
 
 class DicomLoaderTest extends AnyFlatSpec {
   "Spark" should "read DICOM files" in {
@@ -12,7 +13,7 @@ class DicomLoaderTest extends AnyFlatSpec {
     try {
       val df = spark.read
         // TODO use "dicom"
-        .format("binaryFile")
+        .format("dicom")
         .load(
           "src/test/resources/Pancreatic-CT-CBCT-SEG/Pancreas-CT-CB_001/07-06-2012-NA-PANCREAS-59677/1.000000-BSCBLLLRSDCB-27748/1-1.dcm"
         )
