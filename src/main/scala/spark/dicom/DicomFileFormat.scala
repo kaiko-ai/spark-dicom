@@ -23,14 +23,23 @@ import org.dcm4che3.io.DicomInputStream
 
 import java.net.URI
 
+object DicomFileFormat {
+  val PATH    = "path"
+  val LENGTH  = "length"
+  val CONTENT = "content"
+  val SCHEMA = StructType(
+    StructField(PATH, StringType, false) ::
+      StructField(LENGTH, LongType, false) ::
+      StructField(CONTENT, BinaryType, true) :: Nil
+  )
+}
+
 class DicomFileFormat
     extends FileFormat
     with DataSourceRegister
     with Serializable {
 
-  private[DicomFileFormat] val PATH    = "path"
-  private[DicomFileFormat] val LENGTH  = "length"
-  private[DicomFileFormat] val CONTENT = "content"
+  import DicomFileFormat._;
 
   override def shortName(): String = "dicom"
 
@@ -38,13 +47,7 @@ class DicomFileFormat
       sparkSession: SparkSession,
       options: Map[String, String],
       files: Seq[FileStatus]
-  ): Option[StructType] = Some(
-    StructType(
-      StructField(PATH, StringType, false) ::
-        StructField(LENGTH, LongType, false) ::
-        StructField(CONTENT, BinaryType, true) :: Nil
-    )
-  )
+  ): Option[StructType] = Some(SCHEMA)
 
   override def prepareWrite(
       sparkSession: SparkSession,
