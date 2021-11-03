@@ -12,7 +12,7 @@ pkgs.sbt.mkDerivation {
   # 1. reset this to "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
   # 2. let Nix compute hash
   # 3. use computed hash here and re-run build
-  depsSha256 = "6f331FetFhLR9OYIJodnS5MyE38wzwoxDNqoYM3Zyi0=";
+  depsSha256 = "4ijLv6pOnEjSrrrgjCFk2K/hnpP8VwzudENzPNRSZDM=";
 
   src = ./.;
 
@@ -20,6 +20,7 @@ pkgs.sbt.mkDerivation {
     sbt assembly
   '';
 
+  doCheck = true;
   checkPhase = ''
     sbt test
   '';
