@@ -1,6 +1,9 @@
 let
   sources = import ./nix/sources.nix;
-  pkgs = import sources.nixpkgs { };
+  overlays = import ./nix/overlays.nix;
+  pkgs = import sources.nixpkgs {
+    overlays = [ overlays ];
+  };
 in
 pkgs.mkShell {
   buildInputs = [
@@ -9,7 +12,11 @@ pkgs.mkShell {
     pkgs.niv
 
     # JVM & Scala
-    pkgs.jdk17
+    pkgs.jdk
     pkgs.sbt
+    pkgs.coursier
+    pkgs.metals
+    pkgs.bloop
+    pkgs.scalafmt
   ];
 }
