@@ -1,6 +1,5 @@
 package spark.dicom
 
-import ai.kaiko.spark.dicom.DicomFileFormat
 import org.apache.spark.sql.SparkSession
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -12,7 +11,6 @@ class TestDicomFileFormat extends AnyFlatSpec {
     val spark = SparkSession.builder.master("local").getOrCreate
     try {
       val df = spark.read
-        // TODO use "dicom"
         .format("dicom")
         .load(
           "src/test/resources/Pancreatic-CT-CBCT-SEG/Pancreas-CT-CB_001/07-06-2012-NA-PANCREAS-59677/1.000000-BSCBLLLRSDCB-27748/1-1.dcm"
