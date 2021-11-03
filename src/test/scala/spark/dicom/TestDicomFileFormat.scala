@@ -1,4 +1,4 @@
-package spark.dicom
+package ai.kaiko.spark.dicom
 
 import org.apache.spark.sql.SparkSession
 import org.scalatest.flatspec.AnyFlatSpec
