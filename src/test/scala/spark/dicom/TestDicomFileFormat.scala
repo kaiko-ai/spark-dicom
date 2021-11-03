@@ -15,8 +15,8 @@ class TestDicomFileFormat extends AnyFlatSpec {
         .load(
           "src/test/resources/Pancreatic-CT-CBCT-SEG/Pancreas-CT-CB_001/07-06-2012-NA-PANCREAS-59677/1.000000-BSCBLLLRSDCB-27748/1-1.dcm"
         )
+        .select("path", "length", "content")
       df.show
-      // TODO have a proper assertion here
     } finally {
       spark.stop
     }

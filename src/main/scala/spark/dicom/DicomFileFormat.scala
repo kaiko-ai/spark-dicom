@@ -16,10 +16,7 @@ import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.sql.internal.SQLConf.SOURCES_BINARY_FILE_MAX_LENGTH
 import org.apache.spark.sql.sources.DataSourceRegister
 import org.apache.spark.sql.sources.Filter
-import org.apache.spark.sql.types.BinaryType
-import org.apache.spark.sql.types.LongType
-import org.apache.spark.sql.types.StructField
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.SerializableConfiguration
 import org.dcm4che3.io.DicomInputStream
@@ -43,7 +40,8 @@ class DicomFileFormat
       files: Seq[FileStatus]
   ): Option[StructType] = Some(
     StructType(
-      StructField(LENGTH, LongType, false) ::
+      StructField(PATH, StringType, false) ::
+        StructField(LENGTH, LongType, false) ::
         StructField(CONTENT, BinaryType, true) :: Nil
     )
   )
