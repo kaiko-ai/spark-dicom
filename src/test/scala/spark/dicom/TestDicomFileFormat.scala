@@ -1,4 +1,4 @@
-package dicom
+package spark.dicom
 
 import ai.kaiko.spark.dicom.DicomFileFormat
 import org.apache.spark.sql.SparkSession
@@ -7,7 +7,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import scala.io.BufferedSource
 import scala.io.Source
 
-class DicomLoaderTest extends AnyFlatSpec {
+class TestDicomFileFormat extends AnyFlatSpec {
   "Spark" should "read DICOM files" in {
     val spark = SparkSession.builder.master("local").getOrCreate
     try {
