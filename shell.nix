@@ -14,6 +14,7 @@ pkgs.mkShell {
     # JVM & Scala
     pkgs.jdk
     pkgs.sbt
+    pkgs.coursier
     pkgs.metals
     pkgs.bloop
     pkgs.scalafmt
