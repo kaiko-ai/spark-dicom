@@ -33,7 +33,7 @@ class TestDicomFileFormat extends AnyFlatSpec {
         .schema(DicomFileFormat.SCHEMA)
         .format("dicom")
         .load(
-          "src/test/resources/Pancreatic-CT-CBCT-SEG/Pancreas-CT-CB_001/07-06-2012-NA-PANCREAS-59677/1.000000-BSCBLLLRSDCB-27748/"
+          "src/test/resources/Pancreatic-CT-CBCT-SEG/Pancreas-CT-CB_001/*/*/*"
         )
 
       val queryName = "testStreamDicom"
