@@ -7,6 +7,10 @@ let
 in
 pkgs.mkShell {
   buildInputs = [
+    # DevOps
+    pkgs.act
+
+    # Scala project
     pkgs.jdk
     pkgs.sbt
     pkgs.coursier
