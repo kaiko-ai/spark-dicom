@@ -24,8 +24,8 @@ import org.dcm4che3.io.DicomInputStream
 import java.net.URI
 
 object DicomFileFormat {
-  val PATH    = "path"
-  val LENGTH  = "length"
+  val PATH = "path"
+  val LENGTH = "length"
   val CONTENT = "content"
   val SCHEMA = StructType(
     StructField(PATH, StringType, false) ::
@@ -73,8 +73,8 @@ class DicomFileFormat
       sparkSession.conf.get(SOURCES_BINARY_FILE_MAX_LENGTH.key).toInt
 
     (file: PartitionedFile) => {
-      val path   = new Path(new URI(file.filePath))
-      val fs     = path.getFileSystem(broadcastedHadoopConf.value.value)
+      val path = new Path(new URI(file.filePath))
+      val fs = path.getFileSystem(broadcastedHadoopConf.value.value)
       val status = fs.getFileStatus(path)
       // TODO filters
 
@@ -98,7 +98,7 @@ class DicomFileFormat
               maxLength
             )
           }
-          val fileStream      = fs.open(status.getPath);
+          val fileStream = fs.open(status.getPath);
           val dicomFileStream = new DicomInputStream(fileStream);
           try {
             writer.write(i, ByteStreams.toByteArray(dicomFileStream))
