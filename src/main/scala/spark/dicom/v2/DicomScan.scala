@@ -1,19 +1,56 @@
-package spark.dicom.v2
+package ai.kaiko.spark.dicom.v2
 
-import org.apache.spark.sql.connector.read.Scan
+import scala.collection.JavaConverters._
+
+import org.apache.hadoop.fs.Path
+
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.catalyst.expressions.{Expression, ExprUtils}
+import org.apache.spark.sql.connector.read.PartitionReaderFactory
+import org.apache.spark.sql.errors.QueryCompilationErrors
+import org.apache.spark.sql.execution.datasources.PartitioningAwareFileIndex
+import org.apache.spark.sql.execution.datasources.v2.FileScan
+import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import org.apache.spark.util.SerializableConfiguration
 
-import java.{util => ju}
-import org.apache.spark.sql.connector.read.Batch
+case class DicomScan(
+    sparkSession: SparkSession,
+    fileIndex: PartitioningAwareFileIndex,
+    dataSchema: StructType,
+    readDataSchema: StructType,
+    readPartitionSchema: StructType,
+    options: CaseInsensitiveStringMap,
+    pushedFilters: Array[Filter],
+    partitionFilters: Seq[Expression] = Seq.empty,
+    dataFilters: Seq[Expression] = Seq.empty
+) extends FileScan {
 
-class DicomScan(
-    val schema: StructType,
-    val properties: ju.Map[String, String],
-    val options: CaseInsensitiveStringMap
-) extends Scan {
+  override def createReaderFactory(): PartitionReaderFactory = {
+    val caseSensitiveMap = options.asCaseSensitiveMap.asScala.toMap
+    // Hadoop Configurations are case sensitive.
+    val hadoopConf =
+      sparkSession.sessionState.newHadoopConfWithOptions(caseSensitiveMap)
+    val broadcastedConf = sparkSession.sparkContext.broadcast(
+      new SerializableConfiguration(hadoopConf)
+    )
+    // The partition values are already truncated in `FileScan.partitions`.
+    // We should use `readPartitionSchema` as the partition schema here.
+    DicomPartitionReaderFactory(
+      sparkSession.sessionState.conf,
+      broadcastedConf,
+      dataSchema,
+      readDataSchema,
+      readPartitionSchema,
+      pushedFilters
+    )
+  }
 
-  override def readSchema(): StructType = schema
+  override def withFilters(
+      partitionFilters: Seq[Expression],
+      dataFilters: Seq[Expression]
+  ): FileScan =
+    this.copy(partitionFilters = partitionFilters, dataFilters = dataFilters)
 
-  override def toBatch(): Batch = new DicomBatch(schema, properties, options)
 }
