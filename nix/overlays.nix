@@ -5,4 +5,5 @@ self: super: {
         deps = old.deps.overrideAttrs (oldDeps: { outputHash = "K/Pjo5VD9w4knelK0YwXFoZOzJDzjzlMjHF6fJZo524="; });
         buildInputs = [ deps super.jdk ];
       }));
+  bloop = super.callPackage ./pkgs/bloop.nix { };
 }

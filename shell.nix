@@ -7,11 +7,6 @@ let
 in
 pkgs.mkShell {
   buildInputs = [
-    # Nix tooling
-    pkgs.nix
-    pkgs.niv
-
-    # JVM & Scala
     pkgs.jdk
     pkgs.sbt
     pkgs.coursier
