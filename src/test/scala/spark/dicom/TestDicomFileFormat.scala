@@ -13,6 +13,7 @@ import scala.io.Source
 class TestDicomFileFormat extends AnyFlatSpec {
   "Spark" should "read DICOM files" in {
     val spark = SparkSession.builder.master("local").getOrCreate
+    spark.sparkContext.setLogLevel("ERROR")
     try {
       val df = spark.read
         .format("dicom")
@@ -28,6 +29,7 @@ class TestDicomFileFormat extends AnyFlatSpec {
 
   "Spark" should "stream DICOM files" in {
     val spark = SparkSession.builder.master("local").getOrCreate
+    spark.sparkContext.setLogLevel("ERROR")
     try {
       val df = spark.readStream
         .schema(DicomFileFormat.SCHEMA)
