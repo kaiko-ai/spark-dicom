@@ -42,3 +42,5 @@ result
 .metals
 .bloop
 .bsp
+# act secrets
+.secrets
