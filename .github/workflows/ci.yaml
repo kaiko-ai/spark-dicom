@@ -3,23 +3,7 @@ on:
   pull_request:
   push:
 jobs:
-  check_skip:
-    # continue-on-error: true # Uncomment once integration is finished
-    runs-on: ubuntu-latest
-    # Map a step output to a job output
-    outputs:
-      should_skip: ${{ steps.skip_check.outputs.should_skip }}
-    steps:
-      - id: skip_check
-        uses: fkirc/skip-duplicate-actions@master
-        with:
-          paths_ignore: '["**/README.md"]'
-          cancel_others: "true"
-          skip_after_successful_duplicate: "true"
-          concurrent_skipping: "same_content_newer"
-  build:
-    needs: check_skip
-    if: ${{ needs.check_skip.outputs.should_skip != 'true' }}
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -31,5 +15,5 @@ jobs:
         with:
           name: kaiko-ai
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
-      - name: build
+      - name: Test and build
         run: nix-build
