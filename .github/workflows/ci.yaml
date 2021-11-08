@@ -16,7 +16,7 @@ jobs:
           paths_ignore: '["**/README.md"]'
           cancel_others: "true"
           skip_after_successful_duplicate: "true"
-          concurrent_skipping: "same_content"
+          concurrent_skipping: "same_content_newer"
   build:
     needs: check_skip
     if: ${{ needs.check_skip.outputs.should_skip != 'true' }}
