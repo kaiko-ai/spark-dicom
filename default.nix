@@ -12,7 +12,7 @@ pkgs.sbt.mkDerivation {
   # 1. reset this to "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
   # 2. let Nix compute hash
   # 3. use computed hash here and re-run build
-  depsSha256 = "o9L1axgPcjuzDANgw1PmL4UK2/pffpO88p5YPlmlgIA=";
+  depsSha256 = "9qsfkFejm6OpGzvJah3KWtQ0dxdVFq87sHsIZ9FyOjc=";
 
   src = ./.;
 
