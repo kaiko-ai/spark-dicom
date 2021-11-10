@@ -22,6 +22,12 @@ Build the JAR artifact:
 $ nix-build
 ```
 
-#### Warning
+> Note: when changing sbt build dependencies, change `depsSha256` in `default.nix` as instructed.
 
-When changing sbt build dependencies, change `depsSha256` in `default.nix` as instructed.
+### CI
+
+CI is handled by GitHub actions, using Nix for dependency management, test, build and caching (with Cachix).
+
+> Note: for CI to run tests, the CI needs the Nix build to run tests in checkPhase.
+
+You can run the CI locally using `act` (provided in the Nix shell).
