@@ -18,5 +18,6 @@ libraryDependencies += "org.apache.spark" %% "spark-streaming" % "3.2.0" % "prov
 libraryDependencies += "org.scalactic" %% "scalactic" % "3.2.10"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.10" % "test"
 libraryDependencies += "org.dcm4che" % "dcm4che-core" % "5.24.2"
+libraryDependencies += "org.dcm4che" % "dcm4che-imageio" % "5.24.2"
 
 assembly / mainClass := Some("ai.kaiko.dicom.app.Main")

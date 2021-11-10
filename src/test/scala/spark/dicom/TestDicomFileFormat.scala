@@ -1,5 +1,6 @@
 package ai.kaiko.spark.dicom
 
+import org.apache.hadoop.fs.Path
 import org.apache.hadoop.shaded.org.eclipse.jetty.websocket.common.frames.DataFrame
 import org.apache.log4j.Level
 import org.apache.log4j.LogManager
@@ -74,14 +75,25 @@ class TestDicomFileFormat
       )
       .select("path", "length", "content")
 
-    val tmpDir = Files.createTempDirectory("some-dicom-files").toFile
-    tmpDir.delete // need to delete since Spark handles creation
+    val tmpDir = Files.createTempDirectory("some-dicom-files")
+    tmpDir.toFile.delete // need to delete since Spark handles creation
+    val tmpPath = new Path(tmpDir.toUri)
+    val outPath = new Path(tmpDir.resolve("1-1.dcm").toUri)
 
+    // write to single
     df.repartition(1)
       .write
       .format("dicom")
-      .save(tmpDir.toPath.toString)
+      .save(tmpDir.toAbsolutePath.toString)
+    val conf = spark.sparkContext.hadoopConfiguration
+    val fs = tmpPath.getFileSystem(conf)
+    val oneFile = fs
+      .listStatus(tmpPath)
+      .map(x => x.getPath.toString)
+      .find(x => x.endsWith(".dcm"))
+    val srcFile = new Path(oneFile.get)
+    fs.rename(srcFile, outPath)
 
-    logger.info("Write out to : " + tmpDir.toPath.toAbsolutePath.toString)
+    logger.info("Write out to : " + outPath.toString)
   }
 }

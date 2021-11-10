@@ -1,6 +1,5 @@
 package ai.kaiko.spark.dicom
 
-import ai.kaiko.spark.dicom.DicomOutputWriter
 import ai.kaiko.spark.dicom.v2.DicomWrite
 import com.google.common.io.ByteStreams
 import com.google.common.io.Closeables
