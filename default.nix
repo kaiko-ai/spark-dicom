@@ -12,7 +12,12 @@ pkgs.sbt.mkDerivation {
   # 1. reset this to "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
   # 2. let Nix compute hash
   # 3. use computed hash here and re-run build
-  depsSha256 = "o9L1axgPcjuzDANgw1PmL4UK2/pffpO88p5YPlmlgIA=";
+  #
+  # Sometimes, the sha256 computed locally is not the same as the one in CI.
+  # In such cases, believe in the CI, it's most likely the right one.
+  # You can run the CI locally using `act` provided in the Nix shell
+  depsSha256 = "JYh/Nh9mXbDOESFdqNtvjxSgNPSckFiQ0rPrJqIHTkY=";
+
 
   src = ./.;
 

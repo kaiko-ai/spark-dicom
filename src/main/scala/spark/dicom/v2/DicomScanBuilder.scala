@@ -11,6 +11,15 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.apache.spark.sql.connector.read.SupportsPushDownFilters
 import org.apache.spark.sql.internal.SQLConf
 
+object DicomConf {
+  val DICOM_FILTER_PUSHDOWN_ENABLED = SQLConf
+    .buildConf("spark.sql.dicom.filterPushdown.enabled")
+    .doc("When true, enable filter pushdown to DICOM datasource.")
+    .version("3.2.0")
+    .booleanConf
+    .createWithDefault(true)
+}
+
 case class DicomScanBuilder(
     sparkSession: SparkSession,
     fileIndex: PartitioningAwareFileIndex,
@@ -19,13 +28,6 @@ case class DicomScanBuilder(
     options: CaseInsensitiveStringMap
 ) extends FileScanBuilder(sparkSession, fileIndex, dataSchema)
     with SupportsPushDownFilters {
-
-  val DICOM_FILTER_PUSHDOWN_ENABLED = SQLConf
-    .buildConf("spark.sql.dicom.filterPushdown.enabled")
-    .doc("When true, enable filter pushdown to DICOM datasource.")
-    .version("3.2.0")
-    .booleanConf
-    .createWithDefault(true)
 
   override def build(): Scan = DicomScan(
     sparkSession,
@@ -39,7 +41,11 @@ case class DicomScanBuilder(
   private var _pushedFilters: Array[Filter] = Array.empty
 
   override def pushFilters(filters: Array[Filter]): Array[Filter] = {
-    if (sparkSession.sessionState.conf.getConf(DICOM_FILTER_PUSHDOWN_ENABLED)) {
+    if (
+      sparkSession.sessionState.conf.getConf(
+        DicomConf.DICOM_FILTER_PUSHDOWN_ENABLED
+      )
+    ) {
       _pushedFilters = StructFilters.pushedFilters(filters, dataSchema)
     }
     filters

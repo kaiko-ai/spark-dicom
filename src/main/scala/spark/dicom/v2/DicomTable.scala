@@ -15,6 +15,12 @@ import org.apache.spark.sql.execution.datasources.v2.FileTable
 import org.apache.spark.sql.connector.write.{LogicalWriteInfo, WriteBuilder}
 import org.apache.hadoop.fs.FileStatus
 import ai.kaiko.spark.dicom.DicomFileFormat
+import org.apache.spark.sql.connector.write.{
+  LogicalWriteInfo,
+  Write,
+  WriteBuilder
+}
+import org.apache.spark.sql.types.DataType
 
 case class DicomTable(
     name: String,
@@ -31,7 +37,16 @@ case class DicomTable(
   override def inferSchema(files: Seq[FileStatus]): Option[StructType] =
     Some(DicomFileFormat.SCHEMA)
 
-  override def newWriteBuilder(x$1: LogicalWriteInfo): WriteBuilder = ???
+  override def newWriteBuilder(info: LogicalWriteInfo): WriteBuilder =
+    new WriteBuilder {
+      override def build(): Write =
+        DicomWrite(paths, formatName, supportsDataType, info)
+    }
+
+  override def supportsDataType(dataType: DataType): Boolean = dataType match {
+    // accept all data types for now
+    case _ => true
+  }
 
   override def formatName: String = "DICOM"
 }
