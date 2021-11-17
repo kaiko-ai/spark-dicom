@@ -68,49 +68,15 @@ class DicomFileFormat
       sparkSession.sparkContext.broadcast(
         new SerializableConfiguration(hadoopConf)
       )
-    val maxLength =
-      sparkSession.conf.get(SOURCES_BINARY_FILE_MAX_LENGTH.key).toInt
 
-    (file: PartitionedFile) => {
-      val path = new Path(new URI(file.filePath))
-      val fs = path.getFileSystem(broadcastedHadoopConf.value.value)
-      val status = fs.getFileStatus(path)
-      // TODO filters
-
-      if (status.getLen > maxLength) {
-        throw QueryExecutionErrors.fileLengthExceedsMaxLengthError(
-          status,
-          maxLength
-        )
-      }
-
-      val writer = new UnsafeRowWriter(requiredSchema.length)
-      writer.resetRowWriter()
-      requiredSchema.fieldNames.zipWithIndex.foreach {
-        case (PATH, i) =>
-          writer.write(i, UTF8String.fromString(status.getPath.toString))
-        case (LENGTH, i) => writer.write(i, status.getLen)
-        case (CONTENT, i) =>
-          if (status.getLen > maxLength) {
-            throw QueryExecutionErrors.fileLengthExceedsMaxLengthError(
-              status,
-              maxLength
-            )
-          }
-          val fileStream = fs.open(status.getPath);
-          val dicomFileStream = new DicomInputStream(fileStream);
-          try {
-            writer.write(i, ByteStreams.toByteArray(dicomFileStream))
-          } finally {
-            Closeables.close(fileStream, true)
-            Closeables.close(dicomFileStream, true)
-          }
-        case (other, _) =>
-          throw QueryExecutionErrors.unsupportedFieldNameError(other)
-      }
-
-      Iterator.single(writer.getRow)
-    }
+    DicomFileReader.readDicomFile(
+      dataSchema,
+      partitionSchema,
+      requiredSchema,
+      filters,
+      broadcastedHadoopConf,
+      _
+    )
   }
 
   override def prepareWrite(
