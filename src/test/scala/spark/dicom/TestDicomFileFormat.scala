@@ -53,7 +53,7 @@ class TestDicomFileFormat
 
   "Spark" should "stream DICOM files" in {
     val df = spark.readStream
-      .schema(DicomFileFormat.SCHEMA)
+      .schema(DicomFileFormat.DEFAULT_SCHEMA)
       .format("dicom")
       .load(
         TestDicomFileFormat.SOME_DICOM_FOLDER_FILEPATH

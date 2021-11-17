@@ -9,13 +9,13 @@ import java.awt.image.BufferedImage
 import java.io.File
 import org.dcm4che3.data.VR
 import org.dcm4che3.data.Attributes
-import org.apache.avro.generic.GenericData.StringType
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.types._
 
 /** Methods which help work with DICOM data. See also [DicomFile].
   */
 object DicomHelper extends Logging {
-  def getVRSparkType(vr: VR): Option[Class[_]] = {
+  def maybeBuildSparkStructFieldFrom(keyword: String, vr: VR) = {
     vr match {
       case VR.AE => None
       case VR.AS => None
@@ -36,7 +36,7 @@ object DicomHelper extends Logging {
       case VR.OV => None
       case VR.OW => None
       // Person Name
-      case VR.PN => Some(classOf[StringType])
+      case VR.PN => Some(StructField(keyword, StringType))
       case VR.SH => None
       case VR.SL => None
       case VR.SQ => None
@@ -51,7 +51,7 @@ object DicomHelper extends Logging {
       case VR.UR => None
       case VR.US => None
       // Unlimited Text
-      case VR.UT => Some(classOf[StringType])
+      case VR.UT => Some(StructField(keyword, StringType))
       case VR.UV => None
     }
   }
