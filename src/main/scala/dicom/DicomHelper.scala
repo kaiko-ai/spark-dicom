@@ -12,6 +12,8 @@ import org.dcm4che3.data.Attributes
 import org.apache.avro.generic.GenericData.StringType
 import org.apache.spark.internal.Logging
 
+/** Methods which help work with DICOM data. See also [DicomFile].
+  */
 object DicomHelper extends Logging {
   def getVRSparkType(vr: VR): Option[Class[_]] = {
     vr match {

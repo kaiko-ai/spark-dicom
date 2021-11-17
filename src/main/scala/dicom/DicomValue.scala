@@ -4,10 +4,12 @@ import org.dcm4che3.data.Attributes
 import org.dcm4che3.data.VR
 import org.apache.hadoop.shaded.org.checkerframework.common.value.qual.StringVal
 
-// A sum type for read/parsed Dicom values
+/** A sum type to represent parsed DICOM values. Can be one of StringValue,
+  * UnsupportedValue
+  */
 sealed trait DicomValue[+A] { val value: A }
 case class StringValue(value: String) extends DicomValue[String]
-case class UnsupportedValue() extends DicomValue[Unit] {
+case class UnsupportedValue() extends DicomValue[Nothing] {
   lazy val value = {
     throw new Exception("Unsupported value")
   }

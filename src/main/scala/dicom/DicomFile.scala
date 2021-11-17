@@ -7,6 +7,21 @@ import org.dcm4che3.io.DicomInputStream
 
 import java.io.File
 
+/** A wrapper class around DICOM attributes.
+  *
+  * Typically, one would want to do
+  *
+  * ```scala
+  * val dis = new DicomInputStream(file)
+  * val attrs = dis.readDataset
+  * val data = DicomFile(attrs)
+  * ```
+  *
+  * Use `DicomFile.readDicomFile` if you only need this data only, not image.
+  *
+  * @param attrs
+  *   DICOM attributes
+  */
 case class DicomFile(attrs: Attributes) {
   // tag = id of entry
   val tags: Array[Int] = attrs.tags
@@ -24,10 +39,26 @@ case class DicomFile(attrs: Attributes) {
 }
 
 object DicomFile {
+
+  /** Read a DicomFile from a Java [[File]]
+    *
+    * WARNING: use only if you do not need to get BufferedImage from pixel data.
+    *
+    * @param file
+    * @return
+    */
   def readDicomFile(file: File): DicomFile = {
     val dicomInputStream = new DicomInputStream(file)
     readDicomFile(dicomInputStream)
   }
+
+  /** Read a DicomFile from a [[DicomInputStream]]
+    *
+    * WARNING: use only if you do not need to get BufferedImage from pixel data.
+    *
+    * @param dicomInputStream
+    * @return
+    */
   def readDicomFile(dicomInputStream: DicomInputStream): DicomFile = {
     val attrs = dicomInputStream.readDataset
     DicomFile(attrs)
