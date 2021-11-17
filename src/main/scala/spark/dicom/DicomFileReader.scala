@@ -30,8 +30,19 @@ import org.dcm4che3.io.DicomInputStream
 import org.dcm4che3.io.DicomOutputStream
 
 import java.net.URI
+import ai.kaiko.dicom.DicomHelper
+import ai.kaiko.dicom.DicomFile
 
 object DicomFileReader {
+  def inferSchema(conf: Configuration, file: FileStatus): StructType = {
+    val fs = file.getPath.getFileSystem(conf)
+    val fileStream = fs.open(file.getPath)
+    val dicomFileStream = new DicomInputStream(fileStream)
+    val dicomFile = DicomFile.readDicomFile(dicomFileStream)
+    // TODO
+    StructType(Nil)
+  }
+
   def readDicomFile(
       dataSchema: StructType,
       partitionSchema: StructType,
@@ -53,8 +64,8 @@ object DicomFileReader {
         writer.write(i, UTF8String.fromString(status.getPath.toString))
       case (DicomFileFormat.LENGTH, i) => writer.write(i, status.getLen)
       case (DicomFileFormat.CONTENT, i) =>
-        val fileStream = fs.open(status.getPath);
-        val dicomFileStream = new DicomInputStream(fileStream);
+        val fileStream = fs.open(status.getPath)
+        val dicomFileStream = new DicomInputStream(fileStream)
         try {
           writer.write(i, ByteStreams.toByteArray(dicomFileStream))
         } finally {

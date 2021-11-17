@@ -35,6 +35,7 @@ case class DicomTable(
     DicomScanBuilder(sparkSession, fileIndex, schema, dataSchema, options)
 
   override def inferSchema(files: Seq[FileStatus]): Option[StructType] =
+    // TODO read files and infer schema
     Some(DicomFileFormat.SCHEMA)
 
   override def newWriteBuilder(info: LogicalWriteInfo): WriteBuilder =
