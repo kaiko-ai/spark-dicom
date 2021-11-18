@@ -12,11 +12,21 @@ sealed trait DicomValue[+A] { val value: A }
 case class StringValue(value: String) extends DicomValue[String]
 case class UnsupportedValue(vr_name: String) extends DicomValue[Nothing] {
   lazy val value = {
-    throw new Exception("Unsupported value")
+    throw new Exception("No value for an unsupported VR: " ++ vr_name)
   }
 }
 
 object DicomValue {
+
+  /** Read from DICOM [[Attributes]] for a specific [[Tag]] to a [[DicomValue]]
+    *
+    * @param attrs
+    *   DICOM attributes
+    * @param tag
+    *   target tag
+    * @return
+    *   One of the case class of DicomValue: StringValue, UnsupportedValue
+    */
   def readDicomValue(attrs: Attributes, tag: Int): DicomValue[_] = {
     val vr = attrs.getVR(tag)
     vr match {

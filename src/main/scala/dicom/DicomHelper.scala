@@ -12,9 +12,19 @@ import org.dcm4che3.data.Attributes
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.types._
 
-/** Methods which help work with DICOM data. See also [DicomFile].
+/** Methods which help work with DICOM data. See also [[DicomFile]].
   */
 object DicomHelper extends Logging {
+
+  /** Make a Spark StructField out of a tag keyword and a VR when possible
+    *
+    * @param keyword
+    *   keyword of the DICOM tag, see [[Keyword.valueOf]] to get it
+    * @param vr
+    *   VR of the corresponding tag
+    * @return
+    *   Some Spark StructField where applicable
+    */
   def maybeBuildSparkStructFieldFrom(keyword: String, vr: VR) = {
     vr match {
       case VR.AE => None
@@ -57,6 +67,13 @@ object DicomHelper extends Logging {
     }
   }
 
+  /** Read a DICOM image to a list of BufferedImage
+    *
+    * @param file
+    *   a Java file
+    * @return
+    *   a list of buffered image (could be empty)
+    */
   def readDicomImage(file: File): List[BufferedImage] = {
     val imgReaderSpi = new DicomImageReaderSpi
     val imgReader = imgReaderSpi.createReaderInstance(null)
