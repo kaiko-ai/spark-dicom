@@ -3,13 +3,13 @@ package ai.kaiko.spark.dicom.v2
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.StructFilters
 import org.apache.spark.sql.connector.read.Scan
+import org.apache.spark.sql.connector.read.SupportsPushDownFilters
 import org.apache.spark.sql.execution.datasources.PartitioningAwareFileIndex
 import org.apache.spark.sql.execution.datasources.v2.FileScanBuilder
+import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
-import org.apache.spark.sql.connector.read.SupportsPushDownFilters
-import org.apache.spark.sql.internal.SQLConf
 
 object DicomConf {
   val DICOM_FILTER_PUSHDOWN_ENABLED = SQLConf

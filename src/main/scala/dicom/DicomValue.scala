@@ -1,6 +1,5 @@
 package ai.kaiko.dicom
 
-import org.apache.hadoop.shaded.org.checkerframework.common.value.qual.StringVal
 import org.dcm4che3.data.Attributes
 import org.dcm4che3.data.VR
 

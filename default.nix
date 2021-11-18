@@ -16,7 +16,7 @@ pkgs.sbt.mkDerivation {
   # Sometimes, the sha256 computed locally is not the same as the one in CI.
   # In such cases, believe in the CI, it's most likely the right one.
   # You can run the CI locally using `act` provided in the Nix shell
-  depsSha256 = "JYh/Nh9mXbDOESFdqNtvjxSgNPSckFiQ0rPrJqIHTkY=";
+  depsSha256 = "ce99OF853Z3IyP2+KEeBcv84HbuLVxkT9OFVwoVtf7A=";
 
 
   src = ./.;

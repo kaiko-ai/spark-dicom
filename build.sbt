@@ -2,8 +2,15 @@ name := "spark-dicom"
 
 version := "0.1"
 
-scalaVersion := "2.12.15"
-
+inThisBuild(
+  List(
+    scalaVersion := "2.12.15",
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision, // only required for Scala 2.x
+    scalacOptions += "-Ywarn-unused-import", // Scala 2.x only, required by `RemoveUnused`
+    scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
+  )
+)
 idePackagePrefix := Some("ai.kaiko")
 Global / excludeLintKeys += idePackagePrefix
 
