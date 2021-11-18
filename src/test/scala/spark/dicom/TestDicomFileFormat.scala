@@ -1,6 +1,7 @@
 package ai.kaiko.spark.dicom
 
 import ai.kaiko.dicom.DicomTagKeyword.tag
+import ai.kaiko.dicom.TestDicomFile
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.shaded.org.eclipse.jetty.websocket.common.frames.DataFrame
 import org.apache.log4j.Level
@@ -8,6 +9,9 @@ import org.apache.log4j.LogManager
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.streaming.Trigger
+import org.apache.spark.sql.types.StringType
+import org.apache.spark.sql.types.StructField
+import org.apache.spark.sql.types.StructType
 import org.dcm4che3.data
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
@@ -17,7 +21,6 @@ import java.nio.file.Files
 import scala.collection.mutable.MutableList
 import scala.io.BufferedSource
 import scala.io.Source
-import ai.kaiko.dicom.TestDicomFile
 
 trait WithSpark {
   var spark = {
@@ -48,12 +51,20 @@ class TestDicomFileFormat
     val df = spark.read
       .format("dicom")
       .load(TestDicomFile.SOME_DICOM_FILEPATH)
-      .select("path", tag(data.Tag.PersonName))
+      .select("path", tag(data.Tag.PatientName))
   }
 
   "Spark" should "stream DICOM files" in {
     val df = spark.readStream
-      .schema(DicomFileFormat.DEFAULT_SCHEMA)
+      .schema(
+        StructType(
+          StructField("path", StringType, false) :: StructField(
+            tag(data.Tag.PatientName),
+            StringType,
+            false
+          ) :: Nil
+        )
+      )
       .format("dicom")
       .load(
         TestDicomFileFormat.SOME_DICOM_FOLDER_FILEPATH
@@ -67,7 +78,7 @@ class TestDicomFileFormat
       .start
 
     query.processAllAvailable
-    val outDf = spark.table(queryName).select("path", tag(data.Tag.PersonName))
+    val outDf = spark.table(queryName).select("path", tag(data.Tag.PatientName))
     assert(outDf.count == 79)
   }
 
@@ -75,7 +86,7 @@ class TestDicomFileFormat
     val df = spark.read
       .format("dicom")
       .load(TestDicomFile.SOME_DICOM_FILEPATH)
-      .select("path", tag(data.Tag.PersonName))
+      .select("path", "content")
 
     val tmpDir = Files.createTempDirectory("some-dicom-files")
     tmpDir.toFile.delete // need to delete since Spark handles creation

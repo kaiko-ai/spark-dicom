@@ -20,7 +20,8 @@ object DicomHelper extends Logging {
       case VR.AE => None
       case VR.AS => None
       case VR.AT => None
-      case VR.CS => None
+      // String of characters with leading or trailing spaces being non-significant
+      case VR.CS => Some(StructField(keyword, StringType))
       case VR.DA => None
       case VR.DS => None
       case VR.DT => None

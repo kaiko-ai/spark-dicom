@@ -33,16 +33,14 @@ case class DicomTable(
     DicomScanBuilder(sparkSession, fileIndex, schema, dataSchema, options)
 
   override def inferSchema(files: Seq[FileStatus]): Option[StructType] = {
-    val structTypes: Seq[StructType] = files
-      .map(file =>
-        DicomFileReader
-          .inferSchema(sparkSession.sparkContext.hadoopConfiguration, file)
-      )
-    val structType: StructType =
-      structTypes.fold(DicomFileFormat.DEFAULT_SCHEMA)((x, y) =>
-        StructType(x.fields.union(y.fields))
-      )
-    Some(structType)
+    Some(
+      DicomFileReader
+        .inferSchema(
+          sparkSession.sparkContext.hadoopConfiguration,
+          files,
+          includeDefault = false
+        )
+    )
   }
 
   override def newWriteBuilder(info: LogicalWriteInfo): WriteBuilder =

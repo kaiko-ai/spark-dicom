@@ -4,12 +4,13 @@ import ai.kaiko.spark.dicom.DicomFileFormat
 import org.apache.spark.sql.connector.catalog.Table
 import org.apache.spark.sql.connector.catalog.TableProvider
 import org.apache.spark.sql.connector.expressions.Transform
+import org.apache.spark.sql.execution.datasources.FileFormat
 import org.apache.spark.sql.execution.datasources.v2.FileDataSourceV2
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import spire.std.option
 
 import java.{util => ju}
-import org.apache.spark.sql.execution.datasources.FileFormat
 
 class DicomDataSourceV2 extends FileDataSourceV2 {
 
@@ -18,7 +19,10 @@ class DicomDataSourceV2 extends FileDataSourceV2 {
 
   override def shortName(): String = "dicom"
 
-  override protected def getTable(options: CaseInsensitiveStringMap): Table = {
+  def getTable(
+      options: CaseInsensitiveStringMap,
+      optSchema: Option[StructType]
+  ) = {
     val paths = getPaths(options)
     val tableName = getTableName(options, paths)
     val optionsWithoutPaths = getOptionsWithoutPaths(options)
@@ -27,26 +31,17 @@ class DicomDataSourceV2 extends FileDataSourceV2 {
       sparkSession,
       optionsWithoutPaths,
       paths,
-      None,
+      optSchema,
       fallbackFileFormat
     )
   }
 
+  override protected def getTable(options: CaseInsensitiveStringMap): Table =
+    getTable(options, None)
+
   override def getTable(
       options: CaseInsensitiveStringMap,
       schema: StructType
-  ): Table = {
-    val paths = getPaths(options)
-    val tableName = getTableName(options, paths)
-    val optionsWithoutPaths = getOptionsWithoutPaths(options)
-    DicomTable(
-      tableName,
-      sparkSession,
-      optionsWithoutPaths,
-      paths,
-      Some(schema),
-      fallbackFileFormat
-    )
-  }
+  ): Table = getTable(options, Some(schema))
 
 }

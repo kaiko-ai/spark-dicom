@@ -39,7 +39,11 @@ import org.dcm4che3.io.DicomOutputStream
 import java.net.URI
 
 object DicomFileReader {
-  def inferSchema(conf: Configuration, file: FileStatus): StructType = {
+  def inferSchema(
+      conf: Configuration,
+      file: FileStatus,
+      includeDefault: Boolean
+  ): StructType = {
     val fs = file.getPath.getFileSystem(conf)
     val fileStream = fs.open(file.getPath)
     val dicomInputStream = new DicomInputStream(fileStream)
@@ -51,7 +55,28 @@ object DicomFileReader {
       .filter((mb) => mb.isDefined)
       .map((mb) => mb.get)
     // add file attributes to default schema
-    StructType(DicomFileFormat.DEFAULT_SCHEMA.union(StructType(fields)))
+    if (!includeDefault) StructType(fields)
+    else StructType(DicomFileFormat.DEFAULT_SCHEMA.union(StructType(fields)))
+  }
+
+  def inferSchema(
+      conf: Configuration,
+      files: Seq[FileStatus],
+      includeDefault: Boolean
+  ): StructType = {
+    val structTypes: Seq[StructType] = files
+      .map(file =>
+        inferSchema(
+          conf,
+          file,
+          includeDefault = false
+        )
+      )
+    val structType: StructType =
+      structTypes.fold(DicomFileFormat.DEFAULT_SCHEMA)((x, y) =>
+        StructType(x.fields.union(y.fields))
+      )
+    structType
   }
 
   def readDicomFile(
@@ -95,7 +120,7 @@ object DicomFileReader {
           case v: StringValue => writer.write(i, UTF8String.fromString(v.value))
           case v: UnsupportedValue =>
             throw new Exception(
-              "Unsupported value type for keyword " ++ keyword
+              "Unsupported value of VR " ++ v.vr_name ++ " for keyword"
             )
         }
       }
