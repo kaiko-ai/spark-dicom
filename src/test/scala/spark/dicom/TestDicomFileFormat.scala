@@ -1,6 +1,5 @@
 package ai.kaiko.spark.dicom
 
-import ai.kaiko.dicom.DicomTagKeyword.tag
 import ai.kaiko.dicom.TestDicomFile
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.shaded.org.eclipse.jetty.websocket.common.frames.DataFrame
@@ -12,7 +11,8 @@ import org.apache.spark.sql.streaming.Trigger
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.types.StructType
-import org.dcm4che3.data
+import org.dcm4che3.data.Keyword.{valueOf => keyword}
+import org.dcm4che3.data.Tag
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.funspec.AnyFunSpec
@@ -51,7 +51,7 @@ class TestDicomFileFormat
     val df = spark.read
       .format("dicom")
       .load(TestDicomFile.SOME_DICOM_FILEPATH)
-      .select("path", tag(data.Tag.PatientName))
+      .select("path", keyword(Tag.PatientName))
   }
 
   "Spark" should "stream DICOM files" in {
@@ -59,7 +59,7 @@ class TestDicomFileFormat
       .schema(
         StructType(
           StructField("path", StringType, false) :: StructField(
-            tag(data.Tag.PatientName),
+            keyword(Tag.PatientName),
             StringType,
             false
           ) :: Nil
@@ -78,7 +78,8 @@ class TestDicomFileFormat
       .start
 
     query.processAllAvailable
-    val outDf = spark.table(queryName).select("path", tag(data.Tag.PatientName))
+    val outDf =
+      spark.table(queryName).select("path", keyword(Tag.PatientName))
     assert(outDf.count == 79)
   }
 

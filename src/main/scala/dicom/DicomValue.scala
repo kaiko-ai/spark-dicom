@@ -8,6 +8,7 @@ import org.dcm4che3.data.VR
   * UnsupportedValue
   */
 sealed trait DicomValue[+A] { val value: A }
+
 case class StringValue(value: String) extends DicomValue[String]
 case class UnsupportedValue(vr_name: String) extends DicomValue[Nothing] {
   lazy val value = {
