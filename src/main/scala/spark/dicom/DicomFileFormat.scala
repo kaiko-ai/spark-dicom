@@ -31,11 +31,9 @@ import java.net.URI
 
 object DicomFileFormat {
   val PATH = "path"
-  val LENGTH = "length"
   val CONTENT = "content"
-  val SCHEMA = StructType(
+  val DEFAULT_SCHEMA = StructType(
     StructField(PATH, StringType, false) ::
-      StructField(LENGTH, LongType, false) ::
       StructField(CONTENT, BinaryType, true) :: Nil
   )
 }
@@ -53,7 +51,16 @@ class DicomFileFormat
       sparkSession: SparkSession,
       options: Map[String, String],
       files: Seq[FileStatus]
-  ): Option[StructType] = Some(SCHEMA)
+  ): Option[StructType] = {
+    Some(
+      DicomFileReader
+        .inferSchema(
+          sparkSession.sparkContext.hadoopConfiguration,
+          files,
+          includeDefault = false
+        )
+    )
+  }
 
   override protected def buildReader(
       sparkSession: SparkSession,

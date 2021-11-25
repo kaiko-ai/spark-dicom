@@ -1,5 +1,6 @@
 package ai.kaiko.spark.dicom
 
+import ai.kaiko.dicom.TestDicomFile
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.shaded.org.eclipse.jetty.websocket.common.frames.DataFrame
 import org.apache.log4j.Level
@@ -7,15 +8,19 @@ import org.apache.log4j.LogManager
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.streaming.Trigger
-import org.scalatest._
+import org.apache.spark.sql.types.StringType
+import org.apache.spark.sql.types.StructField
+import org.apache.spark.sql.types.StructType
+import org.dcm4che3.data.Keyword.{valueOf => keyword}
+import org.dcm4che3.data.Tag
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.funspec.AnyFunSpec
 
 import java.nio.file.Files
 import scala.collection.mutable.MutableList
 import scala.io.BufferedSource
 import scala.io.Source
-
-import funspec._
 
 trait WithSpark {
   var spark = {
@@ -23,6 +28,11 @@ trait WithSpark {
     spark.sparkContext.setLogLevel(Level.ERROR.toString())
     spark
   }
+}
+
+object TestDicomFileFormat {
+  val SOME_DICOM_FOLDER_FILEPATH =
+    "src/test/resources/Pancreatic-CT-CBCT-SEG/Pancreas-CT-CB_001/07-06-2012-NA-PANCREAS-59677/201.000000-PANCREAS DI iDose 3-97846/*"
 }
 
 class TestDicomFileFormat
@@ -40,19 +50,24 @@ class TestDicomFileFormat
   "Spark" should "read DICOM files" in {
     val df = spark.read
       .format("dicom")
-      .load(
-        "src/test/resources/Pancreatic-CT-CBCT-SEG/Pancreas-CT-CB_001/07-06-2012-NA-PANCREAS-59677/1.000000-BSCBLLLRSDCB-27748/1-1.dcm"
-      )
-      .select("path", "length", "content")
-    assert(df.first().getAs[Long]("length") == 2384336)
+      .load(TestDicomFile.SOME_DICOM_FILEPATH)
+      .select("path", keyword(Tag.PatientName))
   }
 
   "Spark" should "stream DICOM files" in {
     val df = spark.readStream
-      .schema(DicomFileFormat.SCHEMA)
+      .schema(
+        StructType(
+          StructField("path", StringType, false) :: StructField(
+            keyword(Tag.PatientName),
+            StringType,
+            false
+          ) :: Nil
+        )
+      )
       .format("dicom")
       .load(
-        "src/test/resources/Pancreatic-CT-CBCT-SEG/Pancreas-CT-CB_001/07-06-2012-NA-PANCREAS-59677/201.000000-PANCREAS DI iDose 3-97846/*"
+        TestDicomFileFormat.SOME_DICOM_FOLDER_FILEPATH
       )
 
     val queryName = "testStreamDicom"
@@ -63,17 +78,16 @@ class TestDicomFileFormat
       .start
 
     query.processAllAvailable
-    val outDf = spark.table(queryName)
-    assert(outDf.count() == 79)
+    val outDf =
+      spark.table(queryName).select("path", keyword(Tag.PatientName))
+    assert(outDf.count == 79)
   }
 
   "Spark" should "write a DICOM file" in {
     val df = spark.read
       .format("dicom")
-      .load(
-        "src/test/resources/Pancreatic-CT-CBCT-SEG/Pancreas-CT-CB_001/07-06-2012-NA-PANCREAS-59677/1.000000-BSCBLLLRSDCB-27748/1-1.dcm"
-      )
-      .select("path", "length", "content")
+      .load(TestDicomFile.SOME_DICOM_FILEPATH)
+      .select("path", "content")
 
     val tmpDir = Files.createTempDirectory("some-dicom-files")
     tmpDir.toFile.delete // need to delete since Spark handles creation

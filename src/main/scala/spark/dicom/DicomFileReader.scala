@@ -1,5 +1,9 @@
 package ai.kaiko.spark.dicom
 
+import ai.kaiko.dicom.DicomFile
+import ai.kaiko.dicom.DicomHelper
+import ai.kaiko.dicom.StringValue
+import ai.kaiko.dicom.UnsupportedValue
 import ai.kaiko.spark.dicom.v2.DicomWrite
 import com.google.common.io.ByteStreams
 import com.google.common.io.Closeables
@@ -25,13 +29,56 @@ import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.SerializableConfiguration
+import org.dcm4che3.data.Keyword
+import org.dcm4che3.data.Tag
 import org.dcm4che3.data.UID
+import org.dcm4che3.data.VR
 import org.dcm4che3.io.DicomInputStream
 import org.dcm4che3.io.DicomOutputStream
 
 import java.net.URI
 
 object DicomFileReader {
+  def inferSchema(
+      conf: Configuration,
+      file: FileStatus,
+      includeDefault: Boolean
+  ): StructType = {
+    val fs = file.getPath.getFileSystem(conf)
+    val fileStream = fs.open(file.getPath)
+    val dicomInputStream = new DicomInputStream(fileStream)
+    val dicomFile = DicomFile.readDicomFile(dicomInputStream)
+    val fields = (dicomFile.keywords zip dicomFile.vrs)
+      .map { case (kw, vr) =>
+        DicomHelper.maybeBuildSparkStructFieldFrom(kw, vr)
+      }
+      .filter((mb) => mb.isDefined)
+      .map((mb) => mb.get)
+    // add file attributes to default schema
+    if (!includeDefault) StructType(fields)
+    else StructType(DicomFileFormat.DEFAULT_SCHEMA.union(StructType(fields)))
+  }
+
+  def inferSchema(
+      conf: Configuration,
+      files: Seq[FileStatus],
+      includeDefault: Boolean
+  ): StructType = {
+    val structTypes: Seq[StructType] = files
+      .map(file =>
+        inferSchema(
+          conf,
+          file,
+          includeDefault = false
+        )
+      )
+    val structType: StructType =
+      structTypes.fold(DicomFileFormat.DEFAULT_SCHEMA)((x, y) =>
+        StructType(x.fields.union(y.fields))
+      )
+    structType
+  }
+
   def readDicomFile(
       dataSchema: StructType,
       partitionSchema: StructType,
@@ -44,6 +91,10 @@ object DicomFileReader {
     val fs = path.getFileSystem(broadcastedHadoopConf.value.value)
     val status = fs.getFileStatus(path)
 
+    val fileStream = fs.open(status.getPath)
+    val dicomInputStream = new DicomInputStream(fileStream)
+    val dicomFile = DicomFile.readDicomFile(dicomInputStream)
+
     // TODO filters
 
     val writer = new UnsafeRowWriter(requiredSchema.length)
@@ -51,18 +102,29 @@ object DicomFileReader {
     requiredSchema.fieldNames.zipWithIndex.foreach {
       case (DicomFileFormat.PATH, i) =>
         writer.write(i, UTF8String.fromString(status.getPath.toString))
-      case (DicomFileFormat.LENGTH, i) => writer.write(i, status.getLen)
       case (DicomFileFormat.CONTENT, i) =>
-        val fileStream = fs.open(status.getPath);
-        val dicomFileStream = new DicomInputStream(fileStream);
+        val fileStream = fs.open(status.getPath)
+        val dicomInputStream = new DicomInputStream(fileStream)
         try {
-          writer.write(i, ByteStreams.toByteArray(dicomFileStream))
+          writer.write(i, ByteStreams.toByteArray(dicomInputStream))
         } finally {
           Closeables.close(fileStream, true)
-          Closeables.close(dicomFileStream, true)
+          Closeables.close(dicomInputStream, true)
         }
-      case (other, _) =>
-        throw QueryExecutionErrors.unsupportedFieldNameError(other)
+      case (keyword, i) => {
+        val keywordIndex = dicomFile.keywords.indexOf(keyword)
+        if (keywordIndex == -1) {
+          throw QueryExecutionErrors.unsupportedFieldNameError(keyword)
+        }
+        dicomFile.values(i) match {
+          case v: StringValue => writer.write(i, UTF8String.fromString(v.value))
+          case v: UnsupportedValue =>
+            throw new Exception(
+              "Unsupported value of VR " ++ v.vr_name ++ " for keyword"
+            )
+        }
+      }
+
     }
 
     Iterator.single(writer.getRow)
