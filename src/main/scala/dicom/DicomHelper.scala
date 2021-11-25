@@ -1,16 +1,13 @@
 package ai.kaiko.dicom
 
-import org.dcm4che3.data.Keyword
+import org.apache.spark.internal.Logging
+import org.apache.spark.sql.types._
+import org.dcm4che3.data.VR
 import org.dcm4che3.imageio.plugins.dcm.DicomImageReaderSpi
 import org.dcm4che3.io.DicomInputStream
-import org.dcm4che3.util.TagUtils
 
 import java.awt.image.BufferedImage
 import java.io.File
-import org.dcm4che3.data.VR
-import org.dcm4che3.data.Attributes
-import org.apache.spark.internal.Logging
-import org.apache.spark.sql.types._
 
 /** Methods which help work with DICOM data. See also [[DicomFile]].
   */
