@@ -1,8 +1,7 @@
 package ai.kaiko.dicom
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.types._
-import org.dcm4che3.data.VR
+import org.dcm4che3.data.ElementDictionary
 import org.dcm4che3.imageio.plugins.dcm.DicomImageReaderSpi
 import org.dcm4che3.io.DicomInputStream
 
@@ -12,57 +11,7 @@ import java.io.File
 /** Methods which help work with DICOM data. See also [[DicomFile]].
   */
 object DicomHelper extends Logging {
-
-  /** Make a Spark StructField out of a tag keyword and a VR when possible
-    *
-    * @param keyword
-    *   keyword of the DICOM tag, see [[Keyword.valueOf]] to get it
-    * @param vr
-    *   VR of the corresponding tag
-    * @return
-    *   Some Spark StructField where applicable
-    */
-  def maybeBuildSparkStructFieldFrom(keyword: String, vr: VR) = {
-    vr match {
-      case VR.AE => None
-      case VR.AS => None
-      case VR.AT => None
-      // String of characters with leading or trailing spaces being non-significant
-      case VR.CS => Some(StructField(keyword, StringType))
-      case VR.DA => None
-      case VR.DS => None
-      case VR.DT => None
-      case VR.FD => None
-      case VR.FL => None
-      case VR.IS => None
-      case VR.LO => None
-      case VR.LT => None
-      case VR.OB => None
-      case VR.OD => None
-      case VR.OF => None
-      case VR.OL => None
-      case VR.OV => None
-      case VR.OW => None
-      // Person Name
-      case VR.PN => Some(StructField(keyword, StringType))
-      case VR.SH => None
-      case VR.SL => None
-      case VR.SQ => None
-      case VR.SS => None
-      case VR.ST => None
-      case VR.SV => None
-      case VR.TM => None
-      case VR.UC => None
-      case VR.UI => None
-      case VR.UL => None
-      case VR.UN => None
-      case VR.UR => None
-      case VR.US => None
-      // Unlimited Text
-      case VR.UT => Some(StructField(keyword, StringType))
-      case VR.UV => None
-    }
-  }
+  val standardDictionary = ElementDictionary.getStandardElementDictionary
 
   /** Read a DICOM image to a list of BufferedImage
     *
