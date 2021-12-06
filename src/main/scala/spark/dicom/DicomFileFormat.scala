@@ -18,9 +18,11 @@ import org.apache.spark.util.SerializableConfiguration
 object DicomFileFormat {
   val PATH = "path"
   val CONTENT = "content"
-  val DEFAULT_SCHEMA = StructType(
-    StructField(PATH, StringType, false) ::
-      StructField(CONTENT, BinaryType, true) :: Nil
+  val SCHEMA = StructType(
+    Array(
+      StructField(PATH, StringType, false),
+      StructField(CONTENT, BinaryType, true)
+    )
   )
 }
 
@@ -28,7 +30,6 @@ class DicomFileFormat
     extends FileFormat
     with DataSourceRegister
     with Serializable {
-      ;
 
   override def shortName(): String = "dicom"
 
@@ -36,16 +37,7 @@ class DicomFileFormat
       sparkSession: SparkSession,
       options: Map[String, String],
       files: Seq[FileStatus]
-  ): Option[StructType] = {
-    Some(
-      DicomFileReader
-        .inferSchema(
-          sparkSession.sparkContext.hadoopConfiguration,
-          files,
-          includeDefault = false
-        )
-    )
-  }
+  ): Option[StructType] = Some(DicomFileFormat.SCHEMA)
 
   override protected def buildReader(
       sparkSession: SparkSession,

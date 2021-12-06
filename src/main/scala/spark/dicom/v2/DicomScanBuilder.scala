@@ -9,7 +9,6 @@ import org.apache.spark.sql.execution.datasources.v2.FileScanBuilder
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
 object DicomConf {
   val DICOM_FILTER_PUSHDOWN_ENABLED = SQLConf
@@ -25,7 +24,7 @@ case class DicomScanBuilder(
     fileIndex: PartitioningAwareFileIndex,
     schema: StructType,
     dataSchema: StructType,
-    options: CaseInsensitiveStringMap
+    options: Map[String, String]
 ) extends FileScanBuilder(sparkSession, fileIndex, dataSchema)
     with SupportsPushDownFilters {
 
@@ -35,8 +34,7 @@ case class DicomScanBuilder(
     dataSchema,
     readDataSchema(),
     readPartitionSchema(),
-    options,
-    pushedFilters()
+    options
   )
   private var _pushedFilters: Array[Filter] = Array.empty
 

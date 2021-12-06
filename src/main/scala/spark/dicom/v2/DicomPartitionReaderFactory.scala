@@ -6,19 +6,14 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.PartitionReader
 import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.sql.execution.datasources.v2._
-import org.apache.spark.sql.internal.SQLConf
-import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.util.SerializableConfiguration
 
-
 final case class DicomPartitionReaderFactory(
-    sqlConf: SQLConf,
-    broadcastedConf: Broadcast[SerializableConfiguration],
     dataSchema: StructType,
     readDataSchema: StructType,
-    partitionSchema: StructType,
-    filters: Seq[Filter]
+    readPartitionSchema: StructType,
+    broadcastedConf: Broadcast[SerializableConfiguration]
 ) extends FilePartitionReaderFactory {
 
   override def buildReader(
@@ -26,17 +21,18 @@ final case class DicomPartitionReaderFactory(
   ): PartitionReader[InternalRow] = {
     val iter = DicomFileReader.readDicomFile(
       dataSchema,
-      partitionSchema,
+      readPartitionSchema,
       readDataSchema,
-      filters,
+      Seq.empty,
       broadcastedConf,
       file
     )
+
     val fileReader = new PartitionReaderFromIterator[InternalRow](iter)
     new PartitionReaderWithPartitionValues(
       fileReader,
       readDataSchema,
-      partitionSchema,
+      readPartitionSchema,
       file.partitionValues
     )
   }
