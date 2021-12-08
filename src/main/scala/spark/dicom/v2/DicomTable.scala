@@ -5,7 +5,6 @@ import org.apache.hadoop.fs.FileStatus
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.connector.read.ScanBuilder
 import org.apache.spark.sql.connector.write.LogicalWriteInfo
-import org.apache.spark.sql.connector.write.Write
 import org.apache.spark.sql.connector.write.WriteBuilder
 import org.apache.spark.sql.execution.datasources.FileFormat
 import org.apache.spark.sql.execution.datasources.v2.FileTable
@@ -24,6 +23,13 @@ case class DicomTable(
     fallbackFileFormat: Class[_ <: FileFormat]
 ) extends FileTable(sparkSession, options, paths, userSpecifiedSchema) {
 
+  override def newWriteBuilder(
+      logicalWriteInfo: LogicalWriteInfo
+  ): WriteBuilder =
+    throw new Exception(
+      "DICOM file format does not support write. You need to use a script on the driver using dcm4che over each DICOM object."
+    )
+
   override def newScanBuilder(
       options: CaseInsensitiveStringMap
   ): ScanBuilder = {
@@ -35,12 +41,6 @@ case class DicomTable(
 
   override def inferSchema(files: Seq[FileStatus]): Option[StructType] =
     Some(DicomFileFormat.SCHEMA)
-
-  override def newWriteBuilder(info: LogicalWriteInfo): WriteBuilder =
-    new WriteBuilder {
-      override def build(): Write =
-        DicomWrite(paths, formatName, supportsDataType, info)
-    }
 
   override def supportsDataType(dataType: DataType): Boolean = dataType match {
     // accept all data types for now

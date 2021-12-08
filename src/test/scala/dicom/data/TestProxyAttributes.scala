@@ -8,9 +8,9 @@ import org.dcm4che3.data.VR
 import java.io.File
 import org.dcm4che3.io.DicomInputStream
 
-class TestDicomDataset extends AnyFunSpec with Matchers {
-  describe("DicomDataset") {
-    describe("On dummy data") {
+class TestProxyAttributes extends AnyFunSpec with Matchers {
+  describe("ProxyAttributes") {
+    describe("on dummy data") {
       it("parses a dcm4che Attributes") {
         val someAttrs = new Attributes(1)
         someAttrs.setValue(Tag.PatientName, VR.PN, "Test")
@@ -38,7 +38,7 @@ class TestDicomDataset extends AnyFunSpec with Matchers {
         attrs.getValue(tag) shouldBe "Test"
       }
     }
-    describe("On parsed file") {
+    describe("on parsed file") {
       val someDicomFilepath =
         "src/test/resources/Pancreatic-CT-CBCT-SEG/Pancreas-CT-CB_001/07-06-2012-NA-PANCREAS-59677/201.000000-PANCREAS DI iDose 3-97846/1-001.dcm"
       val someDicomFile = {

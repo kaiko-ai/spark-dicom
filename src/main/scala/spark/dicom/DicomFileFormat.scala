@@ -3,11 +3,9 @@ package ai.kaiko.spark.dicom
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileStatus
 import org.apache.hadoop.mapreduce.Job
-import org.apache.hadoop.mapreduce.TaskAttemptContext
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.FileFormat
-import org.apache.spark.sql.execution.datasources.OutputWriter
 import org.apache.spark.sql.execution.datasources.OutputWriterFactory
 import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.sql.sources.DataSourceRegister
@@ -68,19 +66,8 @@ class DicomFileFormat
       job: Job,
       options: Map[String, String],
       dataSchema: StructType
-  ): OutputWriterFactory = {
-    new OutputWriterFactory() {
-
-      override def getFileExtension(context: TaskAttemptContext): String =
-        ".dcm"
-
-      def newInstance(
-          path: String,
-          dataSchema: StructType,
-          context: TaskAttemptContext
-      ): OutputWriter = new DicomOutputWriter(path, dataSchema, context)
-
-    }
-  }
+  ): OutputWriterFactory = throw new Exception(
+    "DICOM file format does not support write"
+  )
 
 }

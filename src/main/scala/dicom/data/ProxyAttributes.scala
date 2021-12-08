@@ -1,7 +1,7 @@
 package ai.kaiko.dicom.data
 
-import org.dcm4che3.data.VR
 import org.dcm4che3.data.Attributes
+import org.dcm4che3.data.VR
 
 /** A proxy case class, with data equivalent to
   * [[org.dcm4che3.data.Attributes]], which is compatible for
@@ -22,9 +22,9 @@ object ProxyAttributes {
     )
   }
 
-  def to(dataset: ProxyAttributes): Attributes = {
+  def to(proxyAttrs: ProxyAttributes): Attributes = {
     val attrs = new Attributes()
-    dataset.dataElements.foreach {
+    proxyAttrs.dataElements.foreach {
       case DicomDataElement(tag, vr, value) => {
         attrs.setValue(tag, vr, value)
       }

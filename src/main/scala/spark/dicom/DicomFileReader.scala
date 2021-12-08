@@ -1,5 +1,8 @@
 package ai.kaiko.spark.dicom
 
+import ai.kaiko.dicom.data.ProxyAttributes
+import com.esotericsoftware.kryo.Kryo
+import com.esotericsoftware.kryo.io.Output
 import com.google.common.io.Closeables
 import org.apache.hadoop.fs.Path
 import org.apache.spark.broadcast.Broadcast
@@ -14,10 +17,15 @@ import org.apache.spark.util.SerializableConfiguration
 import org.dcm4che3.io.DicomInputStream
 
 import java.io.ByteArrayOutputStream
-import java.io.ObjectOutputStream
 import java.net.URI
 
 object DicomFileReader {
+  lazy val serializer: Kryo = {
+    val kryo = new Kryo
+    kryo.register(classOf[ProxyAttributes])
+    kryo.register(classOf[scala.collection.mutable.ArraySeq[_]])
+    kryo
+  }
 
   def readDicomFile(
       dataSchema: StructType,
@@ -51,10 +59,11 @@ object DicomFileReader {
         val fileStream = fs.open(status.getPath)
         val dicomInputStream = new DicomInputStream(fileStream)
         val attrs = dicomInputStream.readDataset
+        val proxyAttrs = ProxyAttributes.from(attrs)
         try {
           val bos = new ByteArrayOutputStream
-          val out = new ObjectOutputStream(bos)
-          out.writeObject(attrs)
+          val out = new Output(bos)
+          serializer.writeObject(out, proxyAttrs)
           out.flush()
 
           writer.write(i, bos.toByteArray)

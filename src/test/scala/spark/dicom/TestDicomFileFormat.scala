@@ -1,20 +1,22 @@
 package ai.kaiko.spark.dicom
 
-import org.apache.hadoop.fs.Path
+import ai.kaiko.dicom.data.ProxyAttributes
+import org.apache.spark.sql.Encoder
+import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.streaming.Trigger
 import org.apache.spark.sql.types.BinaryType
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.types.StructType
+import org.dcm4che3.data.Attributes
+import org.dcm4che3.io.DicomInputStream
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.matchers.should.Matchers
 
 import java.io.File
-import java.nio.file.Files
 import java.time.LocalDate
 import java.time.LocalTime
-import org.apache.spark.sql.Encoders
-import org.dcm4che3.data.Attributes
 
 trait WithImplicits {
   implicit val attributesEncoder = Encoders.kryo[Attributes]
@@ -38,81 +40,73 @@ object TestDicomFileFormat {
 }
 
 class TestDicomFileFormat
-    extends AnyFlatSpec
+    extends AnyFunSpec
     with WithLogging
     with WithSpark
     with WithImplicits
+    with Matchers
     with BeforeAndAfterAll {
 
   override protected def afterAll(): Unit = {
     spark.stop
   }
 
-  "Spark" should "read DICOM files" in {
-    val df = spark.read
-      .format("dicom")
-      .load(TestDicomFileFormat.SOME_DICOM_FILEPATH)
-      .select(
-        "path",
-        "content"
-      )
+  describe("DicomFileFormat") {
+    it("reads to Spark SQL") {
+      val df = spark.read
+        .format("dicom")
+        .load(TestDicomFileFormat.SOME_DICOM_FILEPATH)
+        .select(
+          "path",
+          "content"
+        )
+    }
 
-    df.show
-  }
-
-  "Spark" should "stream DICOM files" in {
-    val df = spark.readStream
-      .schema(
-        StructType(
-          Array(
-            StructField("path", StringType, false),
-            StructField("content", BinaryType, false)
+    it("reads to Spark SQL Structured Streaming") {
+      val df = spark.readStream
+        .schema(
+          StructType(
+            Array(
+              StructField("path", StringType, false),
+              StructField("content", BinaryType, false)
+            )
           )
         )
-      )
-      .format("dicom")
-      .load(
-        TestDicomFileFormat.SOME_DICOM_FOLDER_FILEPATH
-      )
+        .format("dicom")
+        .load(
+          TestDicomFileFormat.SOME_DICOM_FOLDER_FILEPATH
+        )
 
-    val queryName = "testStreamDicom"
-    val query = df.writeStream
-      .trigger(Trigger.Once)
-      .format("memory")
-      .queryName(queryName)
-      .start
+      val queryName = "testStreamDicom"
+      val query = df.writeStream
+        .trigger(Trigger.Once)
+        .format("memory")
+        .queryName(queryName)
+        .start
 
-    query.processAllAvailable
-    val outDf =
-      spark.table(queryName).select("path", "content")
-    assert(outDf.count == 79)
-  }
+      query.processAllAvailable
+      val outDf =
+        spark.table(queryName).select("path", "content")
+      assert(outDf.count == 79)
+    }
 
-  "Spark" should "write a DICOM file" in {
-    val df = spark.read
-      .format("dicom")
-      .load(TestDicomFileFormat.SOME_DICOM_FILEPATH)
-      .select("path", "content")
+    it("decodes to ProxyAttributes") {
+      implicit val encoder: Encoder[ProxyAttributes] =
+        Encoders.kryo[ProxyAttributes]
 
-    val tmpDir = Files.createTempDirectory("some-dicom-files")
-    tmpDir.toFile.delete // need to delete since Spark handles creation
-    val tmpPath = new Path(tmpDir.toUri)
-    val outPath = new Path(tmpDir.resolve("1-1.dcm").toUri)
+      val someAttrs = {
+        val dicomInputStream =
+          new DicomInputStream(TestDicomFileFormat.SOME_DICOM_FILE)
+        dicomInputStream.readDataset
+      }
 
-    // write to single
-    df.repartition(1)
-      .write
-      .format("dicom")
-      .save(tmpDir.toAbsolutePath.toString)
-    val conf = spark.sparkContext.hadoopConfiguration
-    val fs = tmpPath.getFileSystem(conf)
-    val oneFile = fs
-      .listStatus(tmpPath)
-      .map(x => x.getPath.toString)
-      .find(x => x.endsWith(".dcm"))
-    val srcFile = new Path(oneFile.get)
-    fs.rename(srcFile, outPath)
+      val df = spark.read
+        .format("dicom")
+        .load(TestDicomFileFormat.SOME_DICOM_FILEPATH)
+        .select("content")
+        .as[ProxyAttributes]
 
-    logger.info("Write out to : " + outPath.toString)
+      ProxyAttributes.to(df.first) shouldBe someAttrs
+    }
   }
 }
