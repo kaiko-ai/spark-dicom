@@ -11,8 +11,6 @@ inThisBuild(
     scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0"
   )
 )
-idePackagePrefix := Some("ai.kaiko")
-Global / excludeLintKeys += idePackagePrefix
 
 resolvers += "dcm4che Repository" at "https://www.dcm4che.org/maven2"
 
