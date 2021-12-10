@@ -1,11 +1,11 @@
 package ai.kaiko.spark.dicom
 
 import org.apache.spark.sql.Encoder
+import org.apache.spark.sql.SparkSession
 import org.dcm4che3.data.Attributes
+import org.dcm4che3.data.Tag
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
-import org.apache.spark.sql.SparkSession
-import org.dcm4che3.data.Tag
 
 class TestDicomEncoders extends AnyFunSpec with Matchers {
   val SOME_DICOM_FILEPATH =
