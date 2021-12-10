@@ -14,7 +14,7 @@ import org.dcm4che3.data.Attributes
 import scala.reflect.ClassTag
 
 object Encoders {
-  implicit val ATTRIBUTES: Encoder[Attributes] = {
+  val ATTRIBUTES: Encoder[Attributes] = {
     val objSerializer: Expression = {
       val cls = classOf[Attributes]
       StaticInvoke(
