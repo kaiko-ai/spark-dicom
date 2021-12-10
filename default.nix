@@ -22,7 +22,7 @@ pkgs.sbt.mkDerivation {
   src = ./.;
 
   buildPhase = ''
-    sbt assembly
+    sbt package
   '';
 
   doCheck = true;
