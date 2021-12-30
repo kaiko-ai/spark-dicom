@@ -2,16 +2,16 @@ package ai.kaiko.spark.dicom
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileStatus
+import org.apache.hadoop.mapreduce.Job
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.FileFormat
+import org.apache.spark.sql.execution.datasources.OutputWriterFactory
 import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.sql.sources.DataSourceRegister
 import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types._
 import org.apache.spark.util.SerializableConfiguration
-import org.apache.hadoop.mapreduce.Job
-import org.apache.spark.sql.execution.datasources.OutputWriterFactory
 
 object DicomFileFormat {
   val FIELD_NAME_PATH = "path"

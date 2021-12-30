@@ -3,19 +3,19 @@ package ai.kaiko.spark.dicom
 import ai.kaiko.dicom.DicomStandardDictionary
 import org.apache.hadoop.fs.Path
 import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.errors.QueryExecutionErrors
 import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types._
+import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.SerializableConfiguration
+import org.dcm4che3.data
 import org.dcm4che3.io.DicomInputStream
 
 import java.net.URI
-import org.dcm4che3.data
-import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
-import org.apache.spark.internal.Logging
-import org.apache.spark.unsafe.types.UTF8String
 
 object DicomFileReader extends Logging {
   def readDicomFile(

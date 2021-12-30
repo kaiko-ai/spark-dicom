@@ -1,8 +1,9 @@
 package ai.kaiko.dicom
 
-import scala.xml.XML
 import org.dcm4che3.data.VR
+
 import scala.util.Try
+import scala.xml.XML
 
 case class DicomStdElem(
     tag: Int,

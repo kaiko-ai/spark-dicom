@@ -2,11 +2,12 @@ package ai.kaiko.spark.dicom
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types._
-import org.dcm4che3.data._
 import org.apache.spark.unsafe.types.UTF8String
+import org.dcm4che3.data._
+
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 case class DicomSparkMapper(
     sparkDataType: DataType,
