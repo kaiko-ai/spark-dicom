@@ -2,6 +2,7 @@ package ai.kaiko.spark.dicom
 
 import org.apache.log4j.Level
 import org.apache.log4j.LogManager
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.streaming.Trigger
@@ -9,7 +10,7 @@ import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.types.StructType
 import org.dcm4che3.data.Keyword.{valueOf => keywordOf}
-import org.dcm4che3.data.Tag
+import org.dcm4che3.data._
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.CancelAfterFailure
 import org.scalatest.flatspec.AnyFlatSpec
@@ -63,31 +64,28 @@ class TestDicomFileFormat
       .load(TestDicomFileFormat.SOME_DICOM_FILEPATH)
       .select(
         col("path"),
-        col(f"${keywordOf(Tag.PatientName)}.Alphabetic")
-          .as(keywordOf(Tag.PatientName)),
+        col(keywordOf(Tag.PatientName)),
         col(keywordOf(Tag.StudyDate)),
         col(keywordOf(Tag.StudyTime))
       )
 
     val row = df.first
+
     assert(
-      row.getAs[String](
-        keywordOf(Tag.PatientName)
-      ) === TestDicomFileFormat.SOME_STUDY_NAME
+      row.getAs[Row](keywordOf(Tag.PatientName)).getAs[String](0)
+        === TestDicomFileFormat.SOME_STUDY_NAME
     )
     assert(
-      row.getAs[LocalDate](
-        keywordOf(Tag.StudyDate)
-      ) === TestDicomFileFormat.SOME_STUDY_DATE.format(
-        DateTimeFormatter.ISO_LOCAL_DATE
-      )
+      row.getAs[String](keywordOf(Tag.StudyDate))
+        === TestDicomFileFormat.SOME_STUDY_DATE.format(
+          DateTimeFormatter.ISO_LOCAL_DATE
+        )
     )
     assert(
-      row.getAs[LocalTime](
-        keywordOf(Tag.StudyTime)
-      ) === TestDicomFileFormat.SOME_STUDY_TIME.format(
-        DateTimeFormatter.ISO_LOCAL_TIME
-      )
+      row.getAs[String](keywordOf(Tag.StudyTime))
+        === TestDicomFileFormat.SOME_STUDY_TIME.format(
+          DateTimeFormatter.ISO_LOCAL_TIME
+        )
     )
   }
 
