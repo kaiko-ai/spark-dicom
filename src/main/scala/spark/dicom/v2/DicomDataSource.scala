@@ -12,7 +12,7 @@ class DicomDataSource extends FileDataSourceV2 {
   override def fallbackFileFormat: Class[_ <: FileFormat] =
     classOf[DicomFileFormat]
 
-  override def shortName(): String = "dicom"
+  override def shortName(): String = "dicomFile"
 
   def getTable(
       options: CaseInsensitiveStringMap,

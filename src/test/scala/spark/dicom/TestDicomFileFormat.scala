@@ -59,7 +59,7 @@ class TestDicomFileFormat
 
   "Spark" should "read DICOM files" in {
     val df = spark.read
-      .format("dicom")
+      .format("dicomFile")
       .load(TestDicomFileFormat.SOME_DICOM_FILEPATH)
       .select(
         col("path"),
@@ -98,7 +98,7 @@ class TestDicomFileFormat
           StructField("path", StringType, false) +: DicomStandardSpark.fields
         )
       )
-      .format("dicom")
+      .format("dicomFile")
       .load(
         TestDicomFileFormat.SOME_DICOM_FOLDER_FILEPATH
       )
