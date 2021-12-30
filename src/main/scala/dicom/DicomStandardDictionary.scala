@@ -27,7 +27,10 @@ object DicomStandardDictionary {
     val dicomStdXmlDoc = XML.load(xmlResourceInputStream)
     // find relevant xml table holding dict
     ((dicomStdXmlDoc \\ "book" \ "chapter" filter (elem =>
-      elem \@ "label" == "6"
+      elem \@ "label" == "6" ||
+        elem \@ "label" == "7" ||
+        elem \@ "label" == "8" ||
+        elem \@ "label" == "9"
     )) \ "table" \ "tbody" \ "tr")
       // to Map entries
       .map(row => {
