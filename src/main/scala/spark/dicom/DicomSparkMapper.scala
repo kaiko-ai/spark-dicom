@@ -8,7 +8,15 @@ import org.dcm4che3.data._
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import org.apache.spark.sql.catalyst.util.ArrayData
 
+/** @param sparkDataType
+  *   Spark DataType of the output of the reader function
+  * @param reader
+  *   Function that retrieves the proper JVM value from an element in a
+  *   [[org.dcm4che3.data.Attributes]] to be stored in an
+  *   [[org.apache.spark.sql.catalyst.InternalRow]]
+  */
 case class DicomSparkMapper(
     sparkDataType: DataType,
     reader: (Attributes, Int) => Any
@@ -61,17 +69,17 @@ object DicomSparkMapper {
       case FL | FD =>
         DicomSparkMapper(
           sparkDataType = ArrayType(DoubleType, false),
-          reader = _.getDoubles(_)
+          reader = (attrs, tag) => ArrayData.toArrayData(attrs.getDoubles(tag))
         )
       case SL | SS | US | UL =>
         DicomSparkMapper(
           sparkDataType = ArrayType(IntegerType, false),
-          reader = _.getInts(_)
+          reader = (attrs, tag) => ArrayData.toArrayData(attrs.getInts(tag))
         )
       case SV | UV =>
         DicomSparkMapper(
           sparkDataType = ArrayType(LongType, false),
-          reader = _.getLongs(_)
+          reader = (attrs, tag) => ArrayData.toArrayData(attrs.getLongs(tag))
         )
       case DA =>
         DicomSparkMapper(

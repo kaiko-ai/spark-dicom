@@ -12,6 +12,8 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.logging.Logger
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
+import org.apache.spark.sql.catalyst.util.ArrayData
 
 object TestDicomSparkMapper {
   def getSomeTag(vr: VR): Option[Int] = {
@@ -53,9 +55,12 @@ object TestDicomSparkMapper {
             Seq(v.asInstanceOf[String], "", "").map(UTF8String.fromString)
           )
         )
-      case FL | FD           => value.map(v => Array(v))
-      case SL | SS | US | UL => value.map(v => Array(v))
-      case SV | UV           => value.map(v => Array(v))
+      case FL | FD =>
+        value.map(v => ArrayData.toArrayData(Array(v.asInstanceOf[Double])))
+      case SL | SS | US | UL =>
+        value.map(v => ArrayData.toArrayData(Array(v.asInstanceOf[Int])))
+      case SV | UV =>
+        value.map(v => ArrayData.toArrayData(Array(v.asInstanceOf[Long])))
       case DA =>
         value.map(v =>
           UTF8String.fromString(
@@ -104,15 +109,28 @@ class TestDicomSparkMapper extends AnyFunSpec {
 
   describe("DicomSparkMapper") {
     VR.values.foreach { vr =>
-      it(f"reads $vr") {
-        val mapper = DicomSparkMapper.from(vr)
-        val mbTag = getSomeTag(vr)
-        val mbValue = getSomeValue(vr)
-        val mbExpectedValue = getExpectedValue(vr, mbValue)
-        (mbTag zip mbValue zip mbExpectedValue).headOption map {
-          case ((tag, value), expectedValue) =>
-            assert { mapper.reader(SOME_ATTRS, tag) === expectedValue }
+      val mapper = DicomSparkMapper.from(vr)
+      val mbTag = getSomeTag(vr)
+      val mbExpectedValue = getExpectedValue(vr, getSomeValue(vr))
+      (mbTag zip mbExpectedValue).headOption match {
+        case Some((tag, expectedValue)) => {
+          describe(f"for VR $vr") {
+            it("reads") {
+              assert { mapper.reader(SOME_ATTRS, tag) === expectedValue }
+            }
+            it("ingests to InternalRow") {
+              val mutableRow = new GenericInternalRow(1)
+              val value = mapper.reader(SOME_ATTRS, tag)
+              val writer = InternalRow.getWriter(0, mapper.sparkDataType)
+              writer(mutableRow, value)
+              assert { mutableRow.get(0, mapper.sparkDataType) === value }
+            }
+          }
         }
+        case None =>
+          Logger.getGlobal.warning(
+            f"Could not build tests 'TestDicomSparkMapper for VR $vr'"
+          )
       }
     }
   }
