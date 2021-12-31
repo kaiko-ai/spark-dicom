@@ -1,9 +1,10 @@
 package ai.kaiko.dicom
 
 import org.dcm4che3.data._
+
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 object ScalaVR {
 

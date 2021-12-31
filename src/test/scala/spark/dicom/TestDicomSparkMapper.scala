@@ -3,6 +3,8 @@ package ai.kaiko.spark.dicom
 import ai.kaiko.dicom.DicomStandardDictionary
 import ai.kaiko.dicom.ScalaVR
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
+import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.unsafe.types.UTF8String
 import org.dcm4che3.data.Attributes
 import org.dcm4che3.data.VR
@@ -12,8 +14,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.logging.Logger
-import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
-import org.apache.spark.sql.catalyst.util.ArrayData
 
 object TestDicomSparkMapper {
   def getSomeTag(vr: VR): Option[Int] = {
