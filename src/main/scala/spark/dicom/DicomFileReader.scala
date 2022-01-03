@@ -1,6 +1,7 @@
 package ai.kaiko.spark.dicom
 
 import ai.kaiko.dicom.DicomStandardDictionary
+import ai.kaiko.spark.dicom.v1.DicomFileFormat
 import org.apache.hadoop.fs.Path
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging

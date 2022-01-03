@@ -1,6 +1,6 @@
 package ai.kaiko.spark.dicom.v2
 
-import ai.kaiko.spark.dicom.DicomFileFormat
+import ai.kaiko.spark.dicom.v1.DicomFileFormat
 import org.apache.spark.sql.connector.catalog.Table
 import org.apache.spark.sql.execution.datasources.FileFormat
 import org.apache.spark.sql.execution.datasources.v2.FileDataSourceV2

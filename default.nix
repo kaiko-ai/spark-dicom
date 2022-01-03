@@ -2,6 +2,7 @@ let
   sources = import ./nix/sources.nix;
   sbt-derivation = import sources.sbt-derivation;
   pkgs = import sources.nixpkgs { overlays = [ sbt-derivation ]; };
+  inherit (import sources."gitignore.nix" { inherit (pkgs) lib; }) gitignoreSource;
 in
 pkgs.sbt.mkDerivation {
   pname = "spark-dicom";
@@ -19,10 +20,11 @@ pkgs.sbt.mkDerivation {
   depsSha256 = "ce99OF853Z3IyP2+KEeBcv84HbuLVxkT9OFVwoVtf7A=";
 
 
-  src = ./.;
+  src = gitignoreSource ./.;
 
   buildPhase = ''
-    sbt assembly
+    sbt compile
+    sbt package
   '';
 
   doCheck = true;

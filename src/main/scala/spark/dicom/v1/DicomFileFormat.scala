@@ -1,5 +1,7 @@
-package ai.kaiko.spark.dicom
+package ai.kaiko.spark.dicom.v1
 
+import ai.kaiko.spark.dicom.DicomFileReader
+import ai.kaiko.spark.dicom.DicomStandardSpark
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileStatus
 import org.apache.hadoop.mapreduce.Job

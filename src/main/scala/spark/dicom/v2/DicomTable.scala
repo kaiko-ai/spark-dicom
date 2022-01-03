@@ -1,6 +1,6 @@
 package ai.kaiko.spark.dicom.v2
 
-import ai.kaiko.spark.dicom.DicomFileFormat
+import ai.kaiko.spark.dicom.v1.DicomFileFormat
 import org.apache.hadoop.fs.FileStatus
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.connector.read.ScanBuilder
