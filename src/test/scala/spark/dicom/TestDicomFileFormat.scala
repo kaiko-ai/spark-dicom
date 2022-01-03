@@ -1,24 +1,24 @@
 package ai.kaiko.spark.dicom
 
-import ai.kaiko.dicom.DateValue
-import ai.kaiko.dicom.TimeValue
-import org.apache.hadoop.fs.Path
 import org.apache.log4j.Level
 import org.apache.log4j.LogManager
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.streaming.Trigger
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.types.StructType
-import org.dcm4che3.data.Keyword.{valueOf => keyword}
-import org.dcm4che3.data.Tag
+import org.dcm4che3.data.Keyword.{valueOf => keywordOf}
+import org.dcm4che3.data._
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.CancelAfterFailure
+import org.scalatest.funspec.AnyFunSpec
 
 import java.io.File
-import java.nio.file.Files
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 trait WithSpark {
   var spark = {
@@ -46,104 +46,83 @@ object TestDicomFileFormat {
 }
 
 class TestDicomFileFormat
-    extends AnyFlatSpec
+    extends AnyFunSpec
     with WithSpark
-    with BeforeAndAfterAll {
+    with BeforeAndAfterAll
+    with CancelAfterFailure {
 
-  val logger = LogManager.getLogger("TestDicomFileFormat");
-  logger.setLevel(Level.DEBUG)
+  val logger = {
+    val logger = LogManager.getLogger(getClass.getName);
+    logger.setLevel(Level.DEBUG)
+    logger
+  }
 
   override protected def afterAll(): Unit = {
     spark.stop
   }
 
-  "Spark" should "read DICOM files" in {
-    val df = spark.read
-      .format("dicom")
-      .load(TestDicomFileFormat.SOME_DICOM_FILEPATH)
-      .select(
-        "path",
-        keyword(Tag.PatientName),
-        keyword(Tag.StudyDate),
-        keyword(Tag.StudyTime)
-      )
-
-    val row = df.first
-    assert(
-      row.getAs[String](
-        keyword(Tag.PatientName)
-      ) === TestDicomFileFormat.SOME_STUDY_NAME
-    )
-    assert(
-      row.getAs[String](
-        keyword(Tag.StudyDate)
-      ) === TestDicomFileFormat.SOME_STUDY_DATE.format(
-        DateValue.SPARK_FORMATTER
-      )
-    )
-    assert(
-      row.getAs[String](
-        keyword(Tag.StudyTime)
-      ) === TestDicomFileFormat.SOME_STUDY_TIME.format(
-        TimeValue.SPARK_FORMATTER
-      )
-    )
-  }
-
-  "Spark" should "stream DICOM files" in {
-    val df = spark.readStream
-      .schema(
-        StructType(
-          StructField("path", StringType, false) :: StructField(
-            keyword(Tag.PatientName),
-            StringType,
-            false
-          ) :: Nil
+  describe("Spark") {
+    it("reads DICOM files") {
+      val df = spark.read
+        .format("dicomFile")
+        .load(TestDicomFileFormat.SOME_DICOM_FILEPATH)
+        .select(
+          col("path"),
+          col(keywordOf(Tag.PatientName)),
+          col(keywordOf(Tag.StudyDate)),
+          col(keywordOf(Tag.StudyTime))
         )
+
+      val row = df.first
+
+      assert(
+        row.getAs[Row](keywordOf(Tag.PatientName)).getAs[String](0)
+          === TestDicomFileFormat.SOME_STUDY_NAME
       )
-      .format("dicom")
-      .load(
-        TestDicomFileFormat.SOME_DICOM_FOLDER_FILEPATH
+      assert(
+        row.getAs[String](keywordOf(Tag.StudyDate))
+          === TestDicomFileFormat.SOME_STUDY_DATE.format(
+            DateTimeFormatter.ISO_LOCAL_DATE
+          )
       )
+      assert(
+        row.getAs[String](keywordOf(Tag.StudyTime))
+          === TestDicomFileFormat.SOME_STUDY_TIME.format(
+            DateTimeFormatter.ISO_LOCAL_TIME
+          )
+      )
+    }
 
-    val queryName = "testStreamDicom"
-    val query = df.writeStream
-      .trigger(Trigger.Once)
-      .format("memory")
-      .queryName(queryName)
-      .start
+    it("reads a stream of DICOM files") {
+      val df = spark.readStream
+        .schema(
+          StructType(
+            StructField("path", StringType, false) +: DicomStandardSpark.fields
+          )
+        )
+        .format("dicomFile")
+        .load(
+          TestDicomFileFormat.SOME_DICOM_FOLDER_FILEPATH
+        )
+        .select(
+          col("path"),
+          col(f"${keywordOf(Tag.PatientName)}.Alphabetic")
+            .as(keywordOf(Tag.PatientName)),
+          col(keywordOf(Tag.StudyDate)),
+          col(keywordOf(Tag.StudyTime))
+        )
 
-    query.processAllAvailable
-    val outDf =
-      spark.table(queryName).select("path", keyword(Tag.PatientName))
-    assert(outDf.count == 79)
-  }
+      val queryName = "testStreamDicom"
+      val query = df.writeStream
+        .trigger(Trigger.Once)
+        .format("memory")
+        .queryName(queryName)
+        .start
 
-  "Spark" should "write a DICOM file" in {
-    val df = spark.read
-      .format("dicom")
-      .load(TestDicomFileFormat.SOME_DICOM_FILEPATH)
-      .select("path", "content")
-
-    val tmpDir = Files.createTempDirectory("some-dicom-files")
-    tmpDir.toFile.delete // need to delete since Spark handles creation
-    val tmpPath = new Path(tmpDir.toUri)
-    val outPath = new Path(tmpDir.resolve("1-1.dcm").toUri)
-
-    // write to single
-    df.repartition(1)
-      .write
-      .format("dicom")
-      .save(tmpDir.toAbsolutePath.toString)
-    val conf = spark.sparkContext.hadoopConfiguration
-    val fs = tmpPath.getFileSystem(conf)
-    val oneFile = fs
-      .listStatus(tmpPath)
-      .map(x => x.getPath.toString)
-      .find(x => x.endsWith(".dcm"))
-    val srcFile = new Path(oneFile.get)
-    fs.rename(srcFile, outPath)
-
-    logger.info("Write out to : " + outPath.toString)
+      query.processAllAvailable
+      val outDf =
+        spark.table(queryName).select("path", keywordOf(Tag.PatientName))
+      assert(outDf.count == 79)
+    }
   }
 }

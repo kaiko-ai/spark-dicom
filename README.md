@@ -2,6 +2,30 @@
 
 Spark DICOM connector in Scala
 
+## How to use
+
+Once loaded in the classpath of your Spark cluster, you can load DICOM data in Spark using the `dicomFile` as follows:
+
+```scala
+val df = spark.read.format("dicomFile").load("/some/hdfs/path").select("PatientName", "StudyDate", "StudyTime")
+```
+
+You can select DICOM attributes defined in the DICOM standard registry using their keyword.
+They are defined in the [official DICOM standard](https://dicom.nema.org/medical/dicom/2021d/output/chtml/part06/PS3.6.html).
+
+Each attribute is written to a column with a Spark data type equivalent to its VR.
+The mapping is as follows:
+
+| VR                                                         | Spark Data type                                                   |
+| ---------------------------------------------------------- | ----------------------------------------------------------------- |
+| AE, AS, AT, CS, DS, DT, IS, LO, LT, SH, ST, UC, UI, UR, UT | String                                                            |
+| PN                                                         | {"Alphabetic": String, "Ideographic": String, "Phonetic": String} |
+| FL, FD                                                     | [Double]                                                          |
+| SL, SS, US, UL                                             | [Integer]                                                         |
+| SV, UV                                                     | [Long]                                                            |
+| DA                                                         | String (formatted as `DateTimeFormatter.ISO_LOCAL_DATE`)          |
+| TM                                                         | String (formatted as `DateTimeFormatter.ISO_LOCAL_TIME`)          |
+
 ## Development
 
 ### Development shell
