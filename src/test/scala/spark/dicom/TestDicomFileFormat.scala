@@ -13,7 +13,7 @@ import org.dcm4che3.data.Keyword.{valueOf => keywordOf}
 import org.dcm4che3.data._
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.CancelAfterFailure
-import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.funspec.AnyFunSpec
 
 import java.io.File
 import java.time.LocalDate
@@ -46,78 +46,83 @@ object TestDicomFileFormat {
 }
 
 class TestDicomFileFormat
-    extends AnyFlatSpec
+    extends AnyFunSpec
     with WithSpark
     with BeforeAndAfterAll
     with CancelAfterFailure {
 
-  val logger = LogManager.getLogger("TestDicomFileFormat");
-  logger.setLevel(Level.DEBUG)
+  val logger = {
+    val logger = LogManager.getLogger(getClass.getName);
+    logger.setLevel(Level.DEBUG)
+    logger
+  }
 
   override protected def afterAll(): Unit = {
     spark.stop
   }
 
-  "Spark" should "read DICOM files" in {
-    val df = spark.read
-      .format("dicomFile")
-      .load(TestDicomFileFormat.SOME_DICOM_FILEPATH)
-      .select(
-        col("path"),
-        col(keywordOf(Tag.PatientName)),
-        col(keywordOf(Tag.StudyDate)),
-        col(keywordOf(Tag.StudyTime))
-      )
-
-    val row = df.first
-
-    assert(
-      row.getAs[Row](keywordOf(Tag.PatientName)).getAs[String](0)
-        === TestDicomFileFormat.SOME_STUDY_NAME
-    )
-    assert(
-      row.getAs[String](keywordOf(Tag.StudyDate))
-        === TestDicomFileFormat.SOME_STUDY_DATE.format(
-          DateTimeFormatter.ISO_LOCAL_DATE
+  describe("Spark") {
+    it("reads DICOM files") {
+      val df = spark.read
+        .format("dicomFile")
+        .load(TestDicomFileFormat.SOME_DICOM_FILEPATH)
+        .select(
+          col("path"),
+          col(keywordOf(Tag.PatientName)),
+          col(keywordOf(Tag.StudyDate)),
+          col(keywordOf(Tag.StudyTime))
         )
-    )
-    assert(
-      row.getAs[String](keywordOf(Tag.StudyTime))
-        === TestDicomFileFormat.SOME_STUDY_TIME.format(
-          DateTimeFormatter.ISO_LOCAL_TIME
+
+      val row = df.first
+
+      assert(
+        row.getAs[Row](keywordOf(Tag.PatientName)).getAs[String](0)
+          === TestDicomFileFormat.SOME_STUDY_NAME
+      )
+      assert(
+        row.getAs[String](keywordOf(Tag.StudyDate))
+          === TestDicomFileFormat.SOME_STUDY_DATE.format(
+            DateTimeFormatter.ISO_LOCAL_DATE
+          )
+      )
+      assert(
+        row.getAs[String](keywordOf(Tag.StudyTime))
+          === TestDicomFileFormat.SOME_STUDY_TIME.format(
+            DateTimeFormatter.ISO_LOCAL_TIME
+          )
+      )
+    }
+
+    it("reads a stream of DICOM files") {
+      val df = spark.readStream
+        .schema(
+          StructType(
+            StructField("path", StringType, false) +: DicomStandardSpark.fields
+          )
         )
-    )
-  }
-
-  "Spark" should "stream DICOM files" in {
-    val df = spark.readStream
-      .schema(
-        StructType(
-          StructField("path", StringType, false) +: DicomStandardSpark.fields
+        .format("dicomFile")
+        .load(
+          TestDicomFileFormat.SOME_DICOM_FOLDER_FILEPATH
         )
-      )
-      .format("dicomFile")
-      .load(
-        TestDicomFileFormat.SOME_DICOM_FOLDER_FILEPATH
-      )
-      .select(
-        col("path"),
-        col(f"${keywordOf(Tag.PatientName)}.Alphabetic")
-          .as(keywordOf(Tag.PatientName)),
-        col(keywordOf(Tag.StudyDate)),
-        col(keywordOf(Tag.StudyTime))
-      )
+        .select(
+          col("path"),
+          col(f"${keywordOf(Tag.PatientName)}.Alphabetic")
+            .as(keywordOf(Tag.PatientName)),
+          col(keywordOf(Tag.StudyDate)),
+          col(keywordOf(Tag.StudyTime))
+        )
 
-    val queryName = "testStreamDicom"
-    val query = df.writeStream
-      .trigger(Trigger.Once)
-      .format("memory")
-      .queryName(queryName)
-      .start
+      val queryName = "testStreamDicom"
+      val query = df.writeStream
+        .trigger(Trigger.Once)
+        .format("memory")
+        .queryName(queryName)
+        .start
 
-    query.processAllAvailable
-    val outDf =
-      spark.table(queryName).select("path", keywordOf(Tag.PatientName))
-    assert(outDf.count == 79)
+      query.processAllAvailable
+      val outDf =
+        spark.table(queryName).select("path", keywordOf(Tag.PatientName))
+      assert(outDf.count == 79)
+    }
   }
 }
