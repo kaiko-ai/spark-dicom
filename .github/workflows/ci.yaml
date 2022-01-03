@@ -21,3 +21,7 @@ jobs:
         run: nix-shell --run "sbt 'scalafix -r OrganizeImports --check'"
       - name: Test and build
         run: nix-build
+      - uses: actions/upload-artifact@v2
+        with:
+          name: nix-build result JARs
+          path: result/**/*.jar
