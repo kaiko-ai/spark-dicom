@@ -31,8 +31,8 @@ pkgs.sbt.mkDerivation {
   '';
 
   installPhase = ''
-    mkdir -p build/bin/
-    cp target/scala-*/spark-dicom*.jar build/bin/
-    cp -r build/bin/ $out
+    mkdir -p build/bin/jars/
+    cp target/scala-*/spark-dicom*.jar build/bin/jars/
+    cp -r build/bin/ $out/
   '';
 }

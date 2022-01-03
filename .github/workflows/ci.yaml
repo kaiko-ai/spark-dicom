@@ -24,4 +24,4 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: nix-build result JARs
-          path: result/**/*.jar
+          path: result/jars/
