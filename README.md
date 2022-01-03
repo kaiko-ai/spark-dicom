@@ -4,11 +4,9 @@ Spark DICOM connector in Scala
 
 ## How to use
 
-Once loaded in the classpath of your Spark cluster, you can load DICOM data in Spark as follow:
+Once loaded in the classpath of your Spark cluster, you can load DICOM data in Spark using the `dicomFile` as follows:
 
 ```scala
-val spark = SparkSession.builder.master("local").getOrCreate
-
 val df = spark.read.format("dicomFile").load("/some/hdfs/path").select("PatientName", "StudyDate", "StudyTime")
 ```
 
