@@ -125,6 +125,13 @@ class TestDicomSparkMapper extends AnyFunSpec {
               writer(mutableRow, value)
               assert { mutableRow.get(0, mapper.sparkDataType) === value }
             }
+            it("ingests to InternalRow even when value is null") {
+              val mutableRow = new GenericInternalRow(1)
+              val value = mapper.reader(new Attributes(), tag)
+              val writer = InternalRow.getWriter(0, mapper.sparkDataType)
+              writer(mutableRow, value)
+              assert { mutableRow.get(0, mapper.sparkDataType) === value }
+            }
           }
         }
         case None =>
