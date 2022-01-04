@@ -69,17 +69,26 @@ object DicomSparkMapper {
       case FL | FD =>
         DicomSparkMapper(
           sparkDataType = ArrayType(DoubleType, false),
-          reader = (attrs, tag) => ArrayData.toArrayData(attrs.getDoubles(tag))
+          reader = (attrs, tag) =>
+            ArrayData.toArrayData(
+              Option(attrs.getDoubles(tag)).getOrElse(Array.empty)
+            )
         )
       case SL | SS | US | UL =>
         DicomSparkMapper(
           sparkDataType = ArrayType(IntegerType, false),
-          reader = (attrs, tag) => ArrayData.toArrayData(attrs.getInts(tag))
+          reader = (attrs, tag) =>
+            ArrayData.toArrayData(
+              Option(attrs.getInts(tag)).getOrElse(Array.empty)
+            )
         )
       case SV | UV =>
         DicomSparkMapper(
           sparkDataType = ArrayType(LongType, false),
-          reader = (attrs, tag) => ArrayData.toArrayData(attrs.getLongs(tag))
+          reader = (attrs, tag) =>
+            ArrayData.toArrayData(
+              Option(attrs.getLongs(tag)).getOrElse(Array.empty)
+            )
         )
       case DA =>
         DicomSparkMapper(
