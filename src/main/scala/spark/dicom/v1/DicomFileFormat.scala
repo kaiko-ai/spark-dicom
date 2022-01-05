@@ -1,7 +1,7 @@
 package ai.kaiko.spark.dicom.v1
 
 import ai.kaiko.spark.dicom.DicomFileReader
-import ai.kaiko.spark.dicom.DicomStandardSpark
+import ai.kaiko.spark.dicom.v2.DicomDataSource
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileStatus
 import org.apache.hadoop.mapreduce.Job
@@ -15,19 +15,12 @@ import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types._
 import org.apache.spark.util.SerializableConfiguration
 
-object DicomFileFormat {
-  val FIELD_NAME_PATH = "path"
-  val SCHEMA = StructType(
-    StructField(FIELD_NAME_PATH, StringType, false) +: DicomStandardSpark.fields
-  )
-}
+import scala.util.Try
 
 class DicomFileFormat
     extends FileFormat
     with DataSourceRegister
     with Serializable {
-
-  import DicomFileFormat._
 
   override def shortName(): String = "dicomFile"
 
@@ -35,7 +28,14 @@ class DicomFileFormat
       sparkSession: SparkSession,
       options: Map[String, String],
       files: Seq[FileStatus]
-  ): Option[StructType] = Some(SCHEMA)
+  ): Option[StructType] = {
+    val withPixelData: Boolean = options
+      .get(DicomDataSource.OPTION_WITHPIXELDATA.toLowerCase)
+      .flatMap(b => Try(b.toBoolean).toOption)
+      .getOrElse(false)
+
+    Some(DicomDataSource.schema(withPixelData))
+  }
 
   override protected def buildReader(
       sparkSession: SparkSession,

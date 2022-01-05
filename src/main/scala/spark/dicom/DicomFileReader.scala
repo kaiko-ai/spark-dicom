@@ -1,7 +1,6 @@
 package ai.kaiko.spark.dicom
 
 import ai.kaiko.dicom.DicomStandardDictionary
-import ai.kaiko.spark.dicom.v1.DicomFileFormat
 import org.apache.hadoop.fs.Path
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
@@ -19,6 +18,11 @@ import org.dcm4che3.io.DicomInputStream
 import java.net.URI
 
 object DicomFileReader extends Logging {
+  val FIELD_NAME_PATH = "path"
+  val METADATA_FIELDS = Array(
+    StructField(FIELD_NAME_PATH, StringType, false)
+  )
+
   def readDicomFile(
       dataSchema: StructType,
       partitionSchema: StructType,
@@ -46,7 +50,7 @@ object DicomFileReader extends Logging {
 
     requiredSchema.fieldNames.zipWithIndex.foreach {
       // meta fields
-      case (DicomFileFormat.FIELD_NAME_PATH, i) => {
+      case (FIELD_NAME_PATH, i) => {
         val writer = InternalRow.getWriter(i, StringType)
         writer(mutableRow, UTF8String.fromString(status.getPath.toString))
       }

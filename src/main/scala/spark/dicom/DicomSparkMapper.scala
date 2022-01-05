@@ -28,6 +28,11 @@ object DicomSparkMapper {
     reader = _.getBytes(_)
   )
 
+  lazy val OB_OW_MAPPER = DicomSparkMapper(
+    sparkDataType = BinaryType,
+    reader = _.getBytes(_)
+  )
+
   def from(vr: VR): DicomSparkMapper = {
     import VR._
     vr match {
@@ -126,6 +131,7 @@ object DicomSparkMapper {
                 .getOrElse("")
             )
         )
+      case OB | OW => OB_OW_MAPPER
       // map others to binary for the time being
       case _ => DEFAULT_MAPPER
     }

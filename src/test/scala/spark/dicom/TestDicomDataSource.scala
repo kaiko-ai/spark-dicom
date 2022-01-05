@@ -1,14 +1,12 @@
 package ai.kaiko.spark.dicom
 
+import ai.kaiko.spark.dicom.v2.DicomDataSource
 import org.apache.log4j.Level
 import org.apache.log4j.LogManager
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.streaming.Trigger
-import org.apache.spark.sql.types.StringType
-import org.apache.spark.sql.types.StructField
-import org.apache.spark.sql.types.StructType
 import org.dcm4che3.data.Keyword.{valueOf => keywordOf}
 import org.dcm4che3.data._
 import org.scalatest.BeforeAndAfterAll
@@ -28,7 +26,7 @@ trait WithSpark {
   }
 }
 
-object TestDicomFileFormat {
+object TestDicomDataSource {
   val SOME_DICOM_FILEPATH =
     "src/test/resources/Pancreatic-CT-CBCT-SEG/Pancreas-CT-CB_001/07-06-2012-NA-PANCREAS-59677/201.000000-PANCREAS DI iDose 3-97846/1-001.dcm"
   lazy val SOME_DICOM_FILE = {
@@ -45,11 +43,12 @@ object TestDicomFileFormat {
     "src/test/resources/Pancreatic-CT-CBCT-SEG/Pancreas-CT-CB_001/07-06-2012-NA-PANCREAS-59677/201.000000-PANCREAS DI iDose 3-97846/*"
 }
 
-class TestDicomFileFormat
+class TestDicomDataSource
     extends AnyFunSpec
     with WithSpark
     with BeforeAndAfterAll
     with CancelAfterFailure {
+  import TestDicomDataSource._
 
   val logger = {
     val logger = LogManager.getLogger(getClass.getName);
@@ -65,7 +64,7 @@ class TestDicomFileFormat
     it("reads DICOM files") {
       val df = spark.read
         .format("dicomFile")
-        .load(TestDicomFileFormat.SOME_DICOM_FILEPATH)
+        .load(SOME_DICOM_FILEPATH)
         .select(
           col("path"),
           col(keywordOf(Tag.PatientName)),
@@ -77,33 +76,67 @@ class TestDicomFileFormat
 
       assert(
         row.getAs[Row](keywordOf(Tag.PatientName)).getAs[String](0)
-          === TestDicomFileFormat.SOME_STUDY_NAME
+          === SOME_STUDY_NAME
       )
       assert(
         row.getAs[String](keywordOf(Tag.StudyDate))
-          === TestDicomFileFormat.SOME_STUDY_DATE.format(
+          === SOME_STUDY_DATE.format(
             DateTimeFormatter.ISO_LOCAL_DATE
           )
       )
       assert(
         row.getAs[String](keywordOf(Tag.StudyTime))
-          === TestDicomFileFormat.SOME_STUDY_TIME.format(
+          === SOME_STUDY_TIME.format(
             DateTimeFormatter.ISO_LOCAL_TIME
           )
       )
     }
 
+    it(
+      "does not allow reading PixelData when not specified explicitly in config"
+    ) {
+      val thrown = intercept[org.apache.spark.sql.AnalysisException](
+        spark.read
+          .format("dicomFile")
+          .load(SOME_DICOM_FILEPATH)
+          .select(
+            col("path"),
+            col(keywordOf(Tag.PixelData))
+          )
+          .first
+          .getAs[Array[Byte]](keywordOf(Tag.PixelData))
+      )
+      assert(thrown.message.startsWith("cannot resolve 'PixelData'"))
+    }
+
+    it("allows reading PixelData when specified explicitly in config") {
+      assert(
+        DicomDataSource
+          .schema(withPixelData = true)
+          .fields
+          .find(_.name == keywordOf(Tag.PixelData))
+          .isDefined
+      )
+      assert(
+        spark.read
+          .format("dicomFile")
+          .option(DicomDataSource.OPTION_WITHPIXELDATA, true)
+          .load(SOME_DICOM_FILEPATH)
+          .select(
+            col("path"),
+            col(keywordOf(Tag.PixelData))
+          )
+          .first
+          .getAs[Array[Byte]](keywordOf(Tag.PixelData))
+          .size > 0
+      )
+    }
+
     it("reads a stream of DICOM files") {
       val df = spark.readStream
-        .schema(
-          StructType(
-            StructField("path", StringType, false) +: DicomStandardSpark.fields
-          )
-        )
+        .schema(DicomDataSource.schema(false))
         .format("dicomFile")
-        .load(
-          TestDicomFileFormat.SOME_DICOM_FOLDER_FILEPATH
-        )
+        .load(SOME_DICOM_FOLDER_FILEPATH)
         .select(
           col("path"),
           col(f"${keywordOf(Tag.PatientName)}.Alphabetic")

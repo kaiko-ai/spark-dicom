@@ -26,6 +26,16 @@ The mapping is as follows:
 | DA                                                         | String (formatted as `DateTimeFormatter.ISO_LOCAL_DATE`)          |
 | TM                                                         | String (formatted as `DateTimeFormatter.ISO_LOCAL_TIME`)          |
 
+### Pixel Data
+
+The `PixelData` attribute in a DICOM file can be very heavy and make Spark crash.
+Reading it is disabled by default.
+In order to be able to select the `PixelData` column, please turn the `includePixelData` option on:
+
+```scala
+spark.read.format("dicomFile").option("includePixelData", true).load("/some/hdfs/path").select("PixelData")
+```
+
 ## Development
 
 ### Development shell
