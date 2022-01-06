@@ -3,7 +3,6 @@ package ai.kaiko.spark.dicom
 import ai.kaiko.dicom.DicomStandardDictionary
 import org.apache.hadoop.fs.Path
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.errors.QueryExecutionErrors
@@ -17,7 +16,7 @@ import org.dcm4che3.io.DicomInputStream
 
 import java.net.URI
 
-object DicomFileReader extends Logging {
+object DicomFileReader {
   val FIELD_NAME_PATH = "path"
   val METADATA_FIELDS = Array(
     StructField(FIELD_NAME_PATH, StringType, false)
@@ -65,9 +64,6 @@ object DicomFileReader extends Logging {
             } getOrElse DicomSparkMapper.DEFAULT_MAPPER
             val writer = InternalRow.getWriter(i, sparkMapper.sparkDataType)
             val value = sparkMapper.reader(attrs, stdElem.tag)
-            if (value == null) {
-              logError(f"$keyword has value null")
-            }
             writer(mutableRow, value)
           }
         }
