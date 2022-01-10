@@ -17,7 +17,7 @@ pkgs.sbt.mkDerivation {
   # Sometimes, the sha256 computed locally is not the same as the one in CI.
   # In such cases, believe in the CI, it's most likely the right one.
   # You can run the CI locally using `act` provided in the Nix shell
-  depsSha256 = "ce99OF853Z3IyP2+KEeBcv84HbuLVxkT9OFVwoVtf7A=";
+  depsSha256 = "9HIaLbvTLi/wrZGzlMe4lGTbLH2a56Qn2WDCfDExIls=";
 
 
   src = gitignoreSource ./.;
@@ -34,7 +34,7 @@ pkgs.sbt.mkDerivation {
 
   installPhase = ''
     mkdir -p build/bin/jars/
-    cp target/scala-*/spark-dicom*.jar build/bin/jars/
+    cp target/spark-dicom*.jar build/bin/jars/
     cp -r build/bin/ $out/
   '';
 }
