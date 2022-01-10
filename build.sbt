@@ -39,10 +39,12 @@ ThisBuild / scmInfo := Some(
 )
 
 ThisBuild / developers := List(
-  Developer(id="marijncv", name="Marijn Valk", email="marijn@kaiko.ai", url=url("https://github.com/marijncv"))
+  Developer(id="marijncv", name="Marijn Valk", email="marijncv@hotmail", url=url("https://github.com/marijncv")),
+  Developer(id="GuillaumeDesforges", name="Guillaume Desforges", email="guillaume.desforges.pro@gmail.com", url=url("https://github.com/GuillaumeDesforges")),
+  Developer(id="robopoc", name="Robert Berke", email="berke.robert@gmail.com", url=url("https://github.com/robopoc")),
 )
 
-ThisBuild / description := "DICOM - Spark connector."
+ThisBuild / description := "Spark DICOM connector in Scala"
 ThisBuild / licenses := List("Apache 2" -> new URL("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 ThisBuild / homepage := Some(url("https://github.com/kaiko-ai/spark-dicom"))
 
@@ -51,21 +53,3 @@ ThisBuild / pomIncludeRepository := { _ => false }
 ThisBuild / publishTo := sonatypePublishToBundle.value
 
 Global / excludeLintKeys += pomIncludeRepository
-
-import ReleaseTransformations._
-
-releaseCrossBuild := false // true if you cross-build the project for multiple Scala versions
-releaseProcess := Seq[ReleaseStep](
-  checkSnapshotDependencies,
-  inquireVersions,
-  runClean,
-  runTest,
-  setReleaseVersion,
-  commitReleaseVersion,
-  tagRelease,
-  releaseStepCommandAndRemaining("publishSigned"),
-  releaseStepCommand("sonatypeBundleRelease"),
-  setNextVersion,
-  commitNextVersion,
-  pushChanges
-)
