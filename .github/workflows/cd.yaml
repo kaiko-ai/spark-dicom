@@ -4,7 +4,7 @@ on:
     branches:
       - main
 jobs:
-  build:
+  publish-snapshot:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
