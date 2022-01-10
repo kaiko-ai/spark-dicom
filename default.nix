@@ -3,11 +3,10 @@ let
   sbt-derivation = import sources.sbt-derivation;
   pkgs = import sources.nixpkgs { overlays = [ sbt-derivation ]; };
   inherit (import sources."gitignore.nix" { inherit (pkgs) lib; }) gitignoreSource;
-  version = builtins.elemAt (builtins.match "^.*[\"](.+)[\"].*$" (builtins.readFile ./version.sbt)) 0;
 in
 pkgs.sbt.mkDerivation {
   pname = "spark-dicom";
-  version = version;
+  version = builtins.elemAt (builtins.match "^.*[\"](.+)[\"].*$" (builtins.readFile ./version.sbt)) 0;
 
   # see https://github.com/zaninime/sbt-derivation
   # basically, when changing sbt dependencies:
