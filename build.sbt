@@ -1,7 +1,5 @@
 name := "spark-dicom"
 
-version := "0.0.1"
-
 inThisBuild(
   List(
     scalaVersion := "2.12.15",
@@ -10,7 +8,6 @@ inThisBuild(
     scalacOptions += "-Ywarn-unused-import", // Scala 2.x only, required by `RemoveUnused`
     scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0",
     versionScheme := Some("early-semver"),
-    version := "0.0.1"
   )
 )
 idePackagePrefix := Some("ai.kaiko")
@@ -29,15 +26,11 @@ libraryDependencies += "org.dcm4che" % "dcm4che-core" % "5.24.2"
 libraryDependencies += "org.dcm4che" % "dcm4che-imageio" % "5.24.2"
 
 // assembly / mainClass := Some("ai.kaiko.dicom.app.Main")
-
 ThisBuild / organization := "ai.kaiko"
 ThisBuild / organizationName := "Kaiko"
 ThisBuild / organizationHomepage := Some(url("https://kaiko.ai"))
-
 ThisBuild / sonatypeCredentialHost := "s01.oss.sonatype.org"
-
 ThisBuild / crossPaths := false
-
 ThisBuild / scmInfo := Some(
   ScmInfo(
     url("https://github.com/kaiko-ai/spark-dicom"),
@@ -56,3 +49,5 @@ ThisBuild / homepage := Some(url("https://github.com/kaiko-ai/spark-dicom"))
 // Remove all additional repository other than Maven Central from POM
 ThisBuild / pomIncludeRepository := { _ => false }
 ThisBuild / publishTo := sonatypePublishToBundle.value
+
+Global / excludeLintKeys += pomIncludeRepository
