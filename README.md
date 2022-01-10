@@ -65,3 +65,18 @@ CI is handled by GitHub actions, using Nix for dependency management, test, buil
 > Note: for CI to run tests, the CI needs the Nix build to run tests in checkPhase.
 
 You can run the CI locally using `act` (provided in the Nix shell).
+
+## Release
+
+Creating a release is done with the help of the [sbt-sonatype](https://github.com/xerial/sbt-sonatype), [sbt-pgp](https://github.com/sbt/sbt-pgp) and [sbt-release](https://github.com/sbt/sbt-release) plugins. 
+
+Before starting, make sure to set the [Sonatype credentials](https://github.com/xerial/sbt-sonatype#homesbtsbt-version-013-or-10sonatypesbt) as environment variables: `SONATYPE_USERNAME` & `SONATYPE_PASSWORD`. In addition, make sure to have the `gpg` utility installed and the release GPG Key available in your keyring. 
+
+Then, run:
+```
+$ nix-shell
+$ sbt
+$ release
+```
+
+You will be prompted for the "release version", the "next version" and the GPG Key passphrase. Make sure to follow the [SemVer](https://www.scala-lang.org/blog/2021/02/16/preventing-version-conflicts-with-versionscheme.html) versioning scheme. If all went well, the new release should be available on [Maven Central](https://search.maven.org/artifact/ai.kaiko/spark-dicom) in 10 minutes. 
