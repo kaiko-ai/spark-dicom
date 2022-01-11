@@ -5,6 +5,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
+import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.errors.QueryExecutionErrors
 import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.sql.sources.Filter
@@ -18,8 +19,10 @@ import java.net.URI
 
 object DicomFileReader {
   val FIELD_NAME_PATH = "path"
+  val FIELD_NAME_KEYWORDS = "keywords"
   val METADATA_FIELDS = Array(
-    StructField(FIELD_NAME_PATH, StringType, false)
+    StructField(FIELD_NAME_PATH, StringType, false),
+    StructField(FIELD_NAME_KEYWORDS, ArrayType(StringType, false), false)
   )
 
   def readDicomFile(
@@ -52,6 +55,16 @@ object DicomFileReader {
       case (FIELD_NAME_PATH, i) => {
         val writer = InternalRow.getWriter(i, StringType)
         writer(mutableRow, UTF8String.fromString(status.getPath.toString))
+      }
+      case (FIELD_NAME_KEYWORDS, i) => {
+        val keywords = attrs.tags
+          .map(tag => DicomStandardDictionary.tagMap.get(tag))
+          .collect { case Some(stdElem) => stdElem.keyword }
+        val writer = InternalRow.getWriter(i, ArrayType(StringType, false))
+        writer(
+          mutableRow,
+          ArrayData.toArrayData(keywords.map(UTF8String.fromString))
+        )
       }
       // any other requested field should be a DICOM keyword
       case (keyword, i) => {

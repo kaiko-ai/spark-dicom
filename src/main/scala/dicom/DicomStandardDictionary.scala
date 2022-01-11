@@ -66,4 +66,7 @@ object DicomStandardDictionary {
 
   lazy val keywordMap: Map[String, DicomStdElem] =
     elements.map(stdElem => stdElem.keyword -> stdElem).toMap
+
+  lazy val tagMap: Map[Int, DicomStdElem] =
+    elements.map(stdElem => stdElem.tag -> stdElem).toMap
 }
