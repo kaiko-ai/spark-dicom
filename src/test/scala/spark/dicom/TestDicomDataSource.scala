@@ -127,6 +127,16 @@ class TestDicomDataSource
         assert(keywords.contains(keywordOf(Tag.PatientName)))
         assert(!keywords.contains(keywordOf(Tag.XRay3DAcquisitionSequence)))
       }
+      it("mapping to concrete VR") {
+        val df = spark.read
+          .format("dicomFile")
+          .load(SOME_DICOM_FILEPATH)
+          .select("vrs")
+
+        val vrs = df.first.getAs[Map[String, String]]("vrs")
+
+        assert(vrs.get(keywordOf(Tag.PatientName)) === Some(VR.PN.name))
+      }
     }
 
     it(
