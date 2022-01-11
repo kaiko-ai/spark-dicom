@@ -92,6 +92,29 @@ class TestDicomDataSource
       )
     }
 
+    it("reads all attributes of DICOM files") {
+      val df = spark.read
+        .format("dicomFile")
+        .load(SOME_DICOM_FILEPATH)
+        .select("*")
+
+      val row = df.first
+    }
+
+    describe("reads metadata") {
+      it("path") {
+        val df = spark.read
+          .format("dicomFile")
+          .load(SOME_DICOM_FILEPATH)
+          .select("path")
+
+        val row = df.first
+
+        // abs vr rel path
+        assert(row.getAs[String]("path").endsWith(SOME_DICOM_FILEPATH))
+      }
+    }
+
     it(
       "does not allow reading PixelData when not specified explicitly in config"
     ) {
