@@ -56,7 +56,9 @@ Build the JAR artifact:
 $ nix-build
 ```
 
-> Note: when changing sbt build dependencies, change `depsSha256` in `default.nix` as instructed.
+#### Updating dependencies
+
+When changing sbt build dependencies, change `depsSha256` in `default.nix` as instructed.
 
 ### CI
 
