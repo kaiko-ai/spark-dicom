@@ -115,6 +115,18 @@ class TestDicomDataSource
         // abs vr rel path
         assert(row.getAs[String]("path").endsWith(SOME_DICOM_FILEPATH))
       }
+      it("list of defined keywords") {
+        val df = spark.read
+          .format("dicomFile")
+          .load(SOME_DICOM_FILEPATH)
+          .select("keywords")
+
+        val row = df.first
+        val keywords = row.getList[String](row.fieldIndex("keywords"))
+
+        assert(keywords.contains(keywordOf(Tag.PatientName)))
+        assert(!keywords.contains(keywordOf(Tag.XRay3DAcquisitionSequence)))
+      }
     }
 
     it(
