@@ -93,11 +93,13 @@ class TestDicomDataSource
     }
 
     it("reads all attributes of DICOM files") {
+      // This test is successful if no exception is raised
       val df = spark.read
         .format("dicomFile")
         .load(SOME_DICOM_FILEPATH)
         .select("*")
 
+      // Force evaluation of Dataset
       val row = df.first
     }
 
