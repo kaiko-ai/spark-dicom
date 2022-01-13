@@ -44,3 +44,4 @@ result
 .bsp
 # act secrets
 .secrets
+private.key
