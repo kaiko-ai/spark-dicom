@@ -25,3 +25,10 @@ jobs:
         with:
           name: nix-build result JARs
           path: result/jars/
+  check-license:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Check license headers
+        run: bash scripts/check_license_headers.sh
