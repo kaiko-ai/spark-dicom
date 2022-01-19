@@ -140,7 +140,9 @@ object DicomSparkMapper {
                     .parse(
                       _,
                       DateTimeFormatter
-                        .ofPattern("HHmmss[.SSS][.SS][.S]")
+                        .ofPattern(
+                          "HHmmss[.SSSSSS][.SSSSS][.SSSSS][.SSSS][.SSS][.SS][.S]"
+                        )
                     )
                     .format(DateTimeFormatter.ISO_LOCAL_TIME)
                 )
