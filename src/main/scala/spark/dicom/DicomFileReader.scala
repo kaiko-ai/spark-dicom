@@ -33,13 +33,16 @@ import org.dcm4che3.data
 import org.dcm4che3.io.DicomInputStream
 
 import java.net.URI
+import scala.util.Try
 
 object DicomFileReader {
   val FIELD_NAME_PATH = "path"
+  val FIELD_NAME_ISDICOM = "isDicom"
   val FIELD_NAME_KEYWORDS = "keywords"
   val FIELD_NAME_VRS = "vrs"
   val METADATA_FIELDS = Array(
     StructField(FIELD_NAME_PATH, StringType, false),
+    StructField(FIELD_NAME_ISDICOM, BooleanType, false),
     StructField(FIELD_NAME_KEYWORDS, ArrayType(StringType, false), false),
     StructField(FIELD_NAME_VRS, MapType(StringType, StringType), false)
   )
@@ -61,10 +64,11 @@ object DicomFileReader {
     )
 
     val fileStream = fs.open(status.getPath)
-    val dicomInputStream = new DicomInputStream(fileStream)
-    val attrs =
+    val tryAttrs = Try({
+      val dicomInputStream = new DicomInputStream(fileStream)
       if (readPixelData) dicomInputStream.readDataset
       else dicomInputStream.readDatasetUntilPixelData
+    })
 
     // TODO filters
     val mutableRow = new GenericInternalRow(requiredSchema.size)
@@ -75,49 +79,60 @@ object DicomFileReader {
         val writer = InternalRow.getWriter(i, StringType)
         writer(mutableRow, UTF8String.fromString(status.getPath.toString))
       }
+      case (FIELD_NAME_ISDICOM, i) => {
+        val writer = InternalRow.getWriter(i, BooleanType)
+        val isDicom = tryAttrs.isSuccess
+        writer(mutableRow, isDicom)
+      }
       case (FIELD_NAME_KEYWORDS, i) => {
-        val keywords = attrs.tags
-          .map(tag => DicomStandardDictionary.tagMap.get(tag))
-          .collect { case Some(stdElem) => stdElem.keyword }
-        val writer = InternalRow.getWriter(i, ArrayType(StringType, false))
-        writer(
-          mutableRow,
-          ArrayData.toArrayData(keywords.map(UTF8String.fromString))
-        )
+        tryAttrs.map(attrs => {
+          val keywords = attrs.tags
+            .map(tag => DicomStandardDictionary.tagMap.get(tag))
+            .collect { case Some(stdElem) => stdElem.keyword }
+          val writer = InternalRow.getWriter(i, ArrayType(StringType, false))
+          writer(
+            mutableRow,
+            ArrayData.toArrayData(keywords.map(UTF8String.fromString))
+          )
+        })
       }
       case (FIELD_NAME_VRS, i) => {
-        val keywordToVr = attrs.tags
-          .map(tag => DicomStandardDictionary.tagMap.get(tag))
-          .collect { case Some(stdElem) =>
-            stdElem.keyword -> attrs.getVR(stdElem.tag)
-          }
-          .toMap
-        val writer = InternalRow.getWriter(i, MapType(StringType, StringType))
-        writer(
-          mutableRow,
-          ArrayBasedMapData(
-            keywordToVr,
-            keyConverter =
-              (v: Any) => UTF8String.fromString(v.asInstanceOf[String]),
-            valueConverter =
-              (v: Any) => UTF8String.fromString(v.asInstanceOf[data.VR].name)
+        tryAttrs.map(attrs => {
+          val keywordToVr = attrs.tags
+            .map(tag => DicomStandardDictionary.tagMap.get(tag))
+            .collect { case Some(stdElem) =>
+              stdElem.keyword -> attrs.getVR(stdElem.tag)
+            }
+            .toMap
+          val writer = InternalRow.getWriter(i, MapType(StringType, StringType))
+          writer(
+            mutableRow,
+            ArrayBasedMapData(
+              keywordToVr,
+              keyConverter =
+                (v: Any) => UTF8String.fromString(v.asInstanceOf[String]),
+              valueConverter =
+                (v: Any) => UTF8String.fromString(v.asInstanceOf[data.VR].name)
+            )
           )
-        )
+        })
       }
       // any other requested field should be a DICOM keyword
       case (keyword, i) => {
-        DicomStandardDictionary.keywordMap.get(keyword) match {
-          case None =>
-            throw QueryExecutionErrors.unsupportedFieldNameError(keyword)
-          case Some(stdElem) => {
-            val sparkMapper = stdElem.vr.toOption.map {
-              DicomSparkMapper.from
-            } getOrElse DicomSparkMapper.DEFAULT_MAPPER
-            val writer = InternalRow.getWriter(i, sparkMapper.sparkDataType)
-            val value = sparkMapper.reader(attrs, stdElem.tag)
-            writer(mutableRow, value)
+        tryAttrs.map(attrs => {
+          DicomStandardDictionary.keywordMap.get(keyword) match {
+            case None =>
+              throw QueryExecutionErrors.unsupportedFieldNameError(keyword)
+            case Some(stdElem) => {
+              val sparkMapper = stdElem.vr.toOption.map {
+                DicomSparkMapper.from
+              } getOrElse DicomSparkMapper.DEFAULT_MAPPER
+              val writer = InternalRow.getWriter(i, sparkMapper.sparkDataType)
+              val value = sparkMapper.reader(attrs, stdElem.tag)
+              writer(mutableRow, value)
+            }
           }
-        }
+        })
       }
     }
     Iterator.single(mutableRow)
