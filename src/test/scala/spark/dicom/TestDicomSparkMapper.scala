@@ -158,3 +158,28 @@ class TestDicomSparkMapper extends AnyFunSpec {
     }
   }
 }
+
+class ExtraTestDicomSparkMapper extends AnyFunSpec {
+  import TestDicomSparkMapper._
+
+  describe("DicomSparkMapper") {
+    it("reads TM with 6 digits for nanoseconds") {
+      val someTag = getSomeTag(VR.TM).get
+      val mapper = DicomSparkMapper.from(VR.TM)
+
+      val someAttrs = {
+        val attrs = new Attributes
+        attrs.setString(someTag, VR.TM, "122734.625000")
+        attrs
+      }
+
+      val expectedValue = UTF8String.fromString(
+        LocalTime
+          .of(12, 27, 34, 625000000)
+          .format(DateTimeFormatter.ISO_LOCAL_TIME)
+      )
+
+      assert { mapper.reader(someAttrs, someTag) === expectedValue }
+    }
+  }
+}
