@@ -40,6 +40,7 @@ result
 .vscode/
 # Scala build tools generated files
 .metals
+**/metals.sbt
 .bloop
 .bsp
 # act secrets
