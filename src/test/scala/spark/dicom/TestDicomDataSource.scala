@@ -19,12 +19,14 @@ package ai.kaiko.spark.dicom
 import ai.kaiko.spark.dicom.v2.DicomDataSource
 import org.apache.log4j.Level
 import org.apache.log4j.LogManager
+import org.apache.log4j.Priority
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.streaming.Trigger
 import org.dcm4che3.data.Keyword.{valueOf => keywordOf}
 import org.dcm4che3.data._
+import org.dcm4che3.io.DicomOutputStream
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.CancelAfterFailure
 import org.scalatest.funspec.AnyFunSpec
@@ -154,6 +156,41 @@ class TestDicomDataSource
         val vrs = df.first.getAs[Map[String, String]]("vrs")
 
         assert(vrs.get(keywordOf(Tag.PatientName)) === Some(VR.PN.name))
+      }
+    }
+
+    it("collects parse errors") {
+      // write some DICOM with the wrong format
+      import java.nio.file.Files
+      val tmpFile =
+        Files.createTempFile("spark-dicom-test", "collect-parse-error.dcm")
+      val tmpFilePath = tmpFile.toAbsolutePath.toUri.toString
+      logger.log(Priority.INFO, f"Writing attribute file to $tmpFilePath")
+
+      val someTag = Tag.StudyTime
+      val someAttrs = {
+        val attrs = new Attributes
+        attrs.setString(someTag, VR.TM, "12:00:00")
+        attrs
+      }
+      val dcmOutput = new DicomOutputStream(tmpFile.toFile)
+      someAttrs.writeTo(dcmOutput)
+      dcmOutput.flush
+
+      val df = spark.read
+        .format("dicomFile")
+        .load(tmpFile.toAbsolutePath.toUri.toString)
+        .select("errors", "StudyTime")
+
+      val row = df.first
+
+      assert {
+        row
+          .getAs[Map[String, String]]("errors")
+          .get("StudyTime")
+          .getOrElse(
+            "No error"
+          ) === "java.time.format.DateTimeParseException: Text '12:00:00' could not be parsed at index 2"
       }
     }
 
