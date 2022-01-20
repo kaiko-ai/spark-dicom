@@ -57,6 +57,8 @@ object TestDicomDataSource {
 
   val SOME_DICOM_FOLDER_FILEPATH =
     "src/test/resources/Pancreatic-CT-CBCT-SEG/Pancreas-CT-CB_001/07-06-2012-NA-PANCREAS-59677/201.000000-PANCREAS DI iDose 3-97846/*"
+
+  val SOME_NONDICOM_FILEPATH = "src/test/resources/nonDicom/test.txt"
 }
 
 class TestDicomDataSource
@@ -219,6 +221,18 @@ class TestDicomDataSource
       val outDf =
         spark.table(queryName).select("path", keywordOf(Tag.PatientName))
       assert(outDf.count == 79)
+    }
+
+    it("doesn't fail upon reading a non-DICOM file") {
+      val df = spark.read
+        .format("dicomFile")
+        .load(SOME_NONDICOM_FILEPATH)
+        .select("path", "isDicom")
+
+      val row = df.first
+
+      assert(row.getAs[String]("path").endsWith(SOME_NONDICOM_FILEPATH))
+      assert(!row.getAs[Boolean]("isDicom"))
     }
   }
 }
