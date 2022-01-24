@@ -23,8 +23,8 @@ import ai.kaiko.spark.dicom.v1.DicomFileFormat
 import org.apache.spark.sql.connector.catalog.Table
 import org.apache.spark.sql.execution.datasources.FileFormat
 import org.apache.spark.sql.execution.datasources.v2.FileDataSourceV2
-import org.apache.spark.sql.types.StructField
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.BinaryType
+import org.apache.spark.sql.types._
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.dcm4che3.data.Keyword
 import org.dcm4che3.data.Tag
@@ -32,8 +32,9 @@ import org.dcm4che3.data.VR
 
 object DicomDataSource {
   val OPTION_WITHPIXELDATA = "includePixelData"
+  val OPTION_WITHCONTENT = "includeContent"
 
-  def schema(withPixelData: Boolean) = {
+  def schema(withPixelData: Boolean = false, withContent: Boolean = false) = {
     val fields = DicomStandardDictionary.elements
       .collect {
         case stdElem if stdElem.vr.isRight =>
@@ -59,7 +60,11 @@ object DicomDataSource {
 
     val metadataFields = DicomFileReader.METADATA_FIELDS
 
-    new StructType(metadataFields ++ selectedFields)
+    val otherFields: Array[StructField] =
+      if (withContent) Array(StructField("content", BinaryType))
+      else Array.empty
+
+    new StructType(metadataFields ++ selectedFields ++ otherFields)
   }
 }
 

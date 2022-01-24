@@ -48,6 +48,7 @@ sealed case class ValueParseFailure(
 ) extends FieldWriteResult
 
 object DicomFileReader {
+  // metadata fields
   val FIELD_NAME_PATH = "path"
   val FIELD_NAME_ISDICOM = "isDicom"
   val FIELD_NAME_KEYWORDS = "keywords"
@@ -60,6 +61,8 @@ object DicomFileReader {
     StructField(FIELD_NAME_VRS, MapType(StringType, StringType), false),
     StructField(FIELD_NAME_ERRORS, MapType(StringType, StringType), false)
   )
+  // other fields
+  val FIELD_NAME_CONTENT = "content"
 
   def readDicomFile(
       dataSchema: StructType,
@@ -77,8 +80,8 @@ object DicomFileReader {
       data.Keyword.valueOf(data.Tag.PixelData)
     )
 
-    val fileStream = fs.open(status.getPath)
     val tryAttrs = Try({
+      val fileStream = fs.open(status.getPath)
       val dicomInputStream = new DicomInputStream(fileStream)
       if (readPixelData) dicomInputStream.readDataset
       else dicomInputStream.readDatasetUntilPixelData
@@ -145,6 +148,13 @@ object DicomFileReader {
         case (FIELD_NAME_ERRORS, _) => {
           // skip, we'll write it later
           FieldIgnored()
+        }
+        case (FIELD_NAME_CONTENT, i) => {
+          val fileStream = fs.open(status.getPath)
+          val bytes = fileStream.readAllBytes
+          val writer = InternalRow.getWriter(i, BinaryType)
+          writer(mutableRow, bytes)
+          FieldWritten()
         }
         // any other requested field should be a DICOM keyword
         case (keyword, i) => {
