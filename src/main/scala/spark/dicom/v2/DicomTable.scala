@@ -42,12 +42,16 @@ case class DicomTable(
     with Logging {
 
   override def inferSchema(files: Seq[FileStatus]): Option[StructType] = {
-    val withPixelData: Boolean =
-      options.asScala.toMap
-        .get(DicomDataSource.OPTION_WITHPIXELDATA.toLowerCase)
-        .flatMap(b => Try(b.toBoolean).toOption)
-        .getOrElse(false)
-    Some(DicomDataSource.schema(withPixelData))
+    val optionsMap = options.asScala.toMap
+    val withPixelData: Boolean = optionsMap
+      .get(DicomDataSource.OPTION_WITHPIXELDATA.toLowerCase)
+      .flatMap(b => Try(b.toBoolean).toOption)
+      .getOrElse(false)
+    val withContent: Boolean = optionsMap
+      .get(DicomDataSource.OPTION_WITHCONTENT.toLowerCase)
+      .flatMap(b => Try(b.toBoolean).toOption)
+      .getOrElse(false)
+    Some(DicomDataSource.schema(withPixelData, withContent))
   }
 
   override def newScanBuilder(options: CaseInsensitiveStringMap): ScanBuilder =
