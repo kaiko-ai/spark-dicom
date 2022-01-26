@@ -1,8 +1,8 @@
 package ai.kaiko.spark.dicom.deidentifier
 
 import ai.kaiko.dicom.DicomStandardDictionary
+import ai.kaiko.dicom.DicomDeidentifyDictionary
 import org.apache.spark.sql.DataFrame
-import org.dcm4che3.data.Keyword.{valueOf => keywordOf}
 import org.dcm4che3.data._
 import org.dcm4che3.data.VR._
 import org.apache.spark.sql.functions._
@@ -11,6 +11,12 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+
+case class DicomDeidAction(
+  keyword: String,
+  vr: VR,
+  action: String
+)
 
 object DicomDeidentifier {
 
@@ -22,54 +28,82 @@ object DicomDeidentifier {
   val DUMMY_EMPTY_STRING = ""
   val DUMMY_ANONYMIZED_STRING = "Anonymized"
 
-  val TAGS_TO_ACTIONS = Map[String, (DataFrame, String, VR) => DataFrame](
-    keywordOf(Tag.GraphicAnnotationSequence) -> replace,
-    keywordOf(Tag.PersonIdentificationCodeSequence) -> replace,
-    keywordOf(Tag.PersonName) -> replace,
-    keywordOf(Tag.VerifyingObserverName) -> replace,
-    keywordOf(Tag.VerifyingObserverSequence) -> replace,
-    keywordOf(Tag.AccessionNumber) -> replace,
-    keywordOf(Tag.ContentCreatorName) -> replace,
-    keywordOf(Tag.FillerOrderNumberImagingServiceRequest) -> replace,
-    keywordOf(Tag.PatientID) -> replace,
-    keywordOf(Tag.PatientBirthDate) -> replace,
-    keywordOf(Tag.PatientName) -> replace,
-    keywordOf(Tag.PatientSex) -> replace,
-    keywordOf(Tag.PlacerOrderNumberImagingServiceRequest) -> replace,
-    keywordOf(Tag.ReferringPhysicianName) -> replace,
-    keywordOf(Tag.StudyDate) -> replace,
-    keywordOf(Tag.StudyID) -> replace,
-    keywordOf(Tag.StudyTime) -> replace,
-    keywordOf(Tag.VerifyingObserverIdentificationCodeSequence) -> replace,
+  val vrReplaceMap = Map[VR, Either[Int, String]](
+    LO -> Right(DUMMY_ANONYMIZED_STRING),
+    SH -> Right(DUMMY_ANONYMIZED_STRING),
+    PN -> Right(DUMMY_ANONYMIZED_STRING),
+    CS -> Right(DUMMY_ANONYMIZED_STRING),
+    DA -> Right(DUMMY_DATE),
+    TM -> Right(DUMMY_TIME),
+    DT -> Right(DUMMY_DATE_TIME),
+    IS -> Right(DUMMY_ZERO_STRING),
+    FD -> Left(DUMMY_ZERO_INT),
+    FL -> Left(DUMMY_ZERO_INT),
+    SS -> Left(DUMMY_ZERO_INT),
+    US -> Left(DUMMY_ZERO_INT),
+    ST -> Right(DUMMY_EMPTY_STRING)
   )
 
-  def replace(dataframe: DataFrame, keyword: String, vr: VR): DataFrame = {
+  val vrEmptyMap = Map[VR, Either[Int, String]](
+    LO -> Right(DUMMY_EMPTY_STRING),
+    SH -> Right(DUMMY_EMPTY_STRING),
+    PN -> Right(DUMMY_EMPTY_STRING),
+    CS -> Right(DUMMY_EMPTY_STRING),
+    UI -> Right(DUMMY_EMPTY_STRING),
+    DA -> Right(DUMMY_DATE),
+    TM -> Right(DUMMY_TIME),
+    DT -> Right(DUMMY_DATE_TIME),
+    IS -> Right(DUMMY_ZERO_STRING),
+    UL -> Left(DUMMY_ZERO_INT),
+    ST -> Right(DUMMY_EMPTY_STRING)
+  )
 
-    vr match {
-      case LO | SH | PN | CS => dataframe.withColumn(keyword, lit(DUMMY_ANONYMIZED_STRING))
-      case DA => dataframe.withColumn(keyword, lit(DUMMY_DATE))
-      case TM => dataframe.withColumn(keyword, lit(DUMMY_TIME))
-      case DT => dataframe.withColumn(keyword, lit(DUMMY_TIME))
-      case UI => dataframe.withColumn(keyword, md5(col(keyword)))
-      case IS => dataframe.withColumn(keyword, lit(DUMMY_ZERO_STRING))
-      case FD | FL | SS | US => dataframe.withColumn(keyword, lit(DUMMY_ZERO_INT))
-      case ST => dataframe.withColumn(keyword, lit(DUMMY_EMPTY_STRING))
-      case _ => dataframe
-    }
-  }
+  val dropActions = List("X", "X/Z", "X/D", "X/Z/D", "X/Z/U*")
+  val replaceActions = List("D", "Z", "Z/D", "D/X")
 
   def deidentify(dataframe: DataFrame): DataFrame = {
-    var result = dataframe
 
-    TAGS_TO_ACTIONS.foreach( keywordAction => {
-      val vr = DicomStandardDictionary.keywordMap.get(keywordAction._1) match { 
+    val deidActions: Array[DicomDeidAction] = DicomDeidentifyDictionary.elements.flatMap(
+      deidElem => DicomStandardDictionary.keywordMap.get(deidElem.keyword) match {
         case Some(stdElem) => stdElem.vr match {
-          case Right(vr) => result = keywordAction._2(result, keywordAction._1, vr)
-          case _ => 
-        } 
-        case _ =>
+          case Right(vr) => Some(DicomDeidAction(deidElem.keyword, vr, deidElem.action))
+          case _ => None
+        }
+        case _ => None
       }
-    })
-    result
+    )
+
+    val deidActionGroups = deidActions.groupBy(_.action)
+
+    val toKeep: Array[DicomDeidAction] = deidActionGroups.getOrElse("K", Array())
+    val toEmpty = deidActionGroups.getOrElse("Z", Array()) ++ deidActionGroups.getOrElse("Z/D", Array())
+    val toReplace = deidActionGroups.getOrElse("D", Array()) ++ deidActionGroups.getOrElse("D/X", Array())
+    val toClean = deidActionGroups.getOrElse("C", Array())
+    val toPseudonymize = deidActionGroups.getOrElse("U", Array())
+
+    // reverse drop: select all columns not in deidActions
+    val keepCols = (toKeep.map(_.keyword) ++ dataframe.columns diff deidActions.map(_.keyword)).map(col(_))
+    val emptyCols = toEmpty.flatMap(deid => {
+        vrEmptyMap.get(deid.vr) match {
+          case Some(Left(dummyVal)) => Some(lit(dummyVal).as(deid.keyword))
+          case Some(Right(dummyVal)) => Some(lit(dummyVal).as(deid.keyword))
+          case _ => None
+        }
+      })
+    val replaceCols = toReplace.flatMap(deid => {
+        vrReplaceMap.get(deid.vr) match {
+          case Some(Left(dummyVal)) => Some(lit(dummyVal).as(deid.keyword))
+          case Some(Right(dummyVal)) => Some(lit(dummyVal).as(deid.keyword))
+          case _ => None
+        }
+      })
+
+    // implement later
+    val cleanCols = toClean.map(deid => lit("ToClean").as(deid.keyword))
+    val pseudonymizeCols = toPseudonymize.map(deid => lit("ToPseudonymize").as(deid.keyword))
+
+    dataframe
+      .select(keepCols: _*)
+      .select(emptyCols ++ replaceCols ++ cleanCols ++ pseudonymizeCols: _*)
   }
 }

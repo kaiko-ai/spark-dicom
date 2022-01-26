@@ -50,6 +50,8 @@ class TestDicomDeidentifier
     spark.stop
   }
 
+  val SOME_DROPPED_COLUMN = "ContainerComponentID"
+
   describe("Spark") {
     it("Deidentify DICOM DataFrame") {
       var df = spark.read
@@ -61,17 +63,36 @@ class TestDicomDeidentifier
       val row = df.first
 
       assert(
-        row.getAs[String](keywordOf(Tag.PatientName))
-          === DUMMY_ANONYMIZED_STRING
-      )
-      assert(
-        row.getAs[String](keywordOf(Tag.StudyDate))
+        row.getAs[String](keywordOf(Tag.ContentDate))
           === DUMMY_DATE
       )
       assert(
-        row.getAs[String](keywordOf(Tag.StudyTime))
+        row.getAs[String](keywordOf(Tag.ContentTime))
           === DUMMY_TIME
       )
+      assert(
+        row.getAs[String](keywordOf(Tag.AttributeModificationDateTime))
+          === DUMMY_DATE_TIME
+      )
+      assert(
+        row.getAs[String](keywordOf(Tag.AnnotationGroupLabel))
+          === DUMMY_ANONYMIZED_STRING
+      )
+      // assert(
+      //   row.getAs[String](keywordOf(Tag.AnnotationGroupLabel))
+      //     === DUMMY_ZERO_INT
+      // )
+      // assert(
+      //   row.getAs[String](keywordOf(Tag.AnnotationGroupLabel))
+      //     === DUMMY_ZERO_STRING
+      // )
+      // assert(
+      //   row.getAs[String](keywordOf(Tag.AnnotationGroupLabel))
+      //     === DUMMY_EMPTY_STRING
+      // )
+      assertThrows[IllegalArgumentException]{
+        row.fieldIndex(SOME_DROPPED_COLUMN)
+      }
     }
   }
 }
