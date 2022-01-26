@@ -1,6 +1,15 @@
 package deidentifier
 
 import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
+import ai.kaiko.dicom.DicomDeidentifyDictionary.{
+  DUMMY_DATE,
+  DUMMY_TIME,
+  DUMMY_DATE_TIME,
+  ZERO_STRING,
+  ZERO_INT,
+  EMPTY_STRING,
+  DUMMY_STRING
+}
 import org.apache.log4j.Level
 import org.apache.log4j.LogManager
 
@@ -76,19 +85,19 @@ class TestDicomDeidentifier
       )
       assert(
         row.getAs[String](keywordOf(Tag.AnnotationGroupLabel))
-          === DUMMY_ANONYMIZED_STRING
+          === DUMMY_STRING
       )
       // assert(
-      //   row.getAs[String](keywordOf(Tag.AnnotationGroupLabel))
-      //     === DUMMY_ZERO_INT
+      //   row.getAs[String](keywordOf(Tag.SimpleFrameList))
+      //     === ZERO_INT
       // )
       // assert(
       //   row.getAs[String](keywordOf(Tag.AnnotationGroupLabel))
-      //     === DUMMY_ZERO_STRING
+      //     === ZERO_STRING
       // )
       // assert(
       //   row.getAs[String](keywordOf(Tag.AnnotationGroupLabel))
-      //     === DUMMY_EMPTY_STRING
+      //     === EMPTY_STRING
       // )
       assertThrows[IllegalArgumentException]{
         row.fieldIndex(SOME_DROPPED_COLUMN)
