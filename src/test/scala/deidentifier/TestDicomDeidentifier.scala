@@ -56,7 +56,7 @@ class TestDicomDeidentifier
         .format("dicomFile")
         .load(SOME_DICOM_FILEPATH)
 
-      df = deid(df)
+      df = deidentify(df)
 
       val row = df.first
 

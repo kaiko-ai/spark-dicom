@@ -4,6 +4,7 @@ import ai.kaiko.dicom.DicomStandardDictionary
 import org.apache.spark.sql.DataFrame
 import org.dcm4che3.data.Keyword.{valueOf => keywordOf}
 import org.dcm4che3.data._
+import org.dcm4che3.data.VR._
 import org.apache.spark.sql.functions._
 
 import java.time.LocalDate
@@ -21,56 +22,54 @@ object DicomDeidentifier {
   val DUMMY_EMPTY_STRING = ""
   val DUMMY_ANONYMIZED_STRING = "Anonymized"
 
-  val KEYWORDS_TO_REPLACE = List(
-    keywordOf(Tag.GraphicAnnotationSequence),
-    keywordOf(Tag.PersonIdentificationCodeSequence),
-    keywordOf(Tag.PersonName),
-    keywordOf(Tag.VerifyingObserverName),
-    keywordOf(Tag.VerifyingObserverSequence),
-    keywordOf(Tag.AccessionNumber),
-    keywordOf(Tag.ContentCreatorName),
-    keywordOf(Tag.FillerOrderNumberImagingServiceRequest),
-    keywordOf(Tag.PatientID),
-    keywordOf(Tag.PatientBirthDate),
-    keywordOf(Tag.PatientName),
-    keywordOf(Tag.PatientSex),
-    keywordOf(Tag.PlacerOrderNumberImagingServiceRequest),
-    keywordOf(Tag.ReferringPhysicianName),
-    keywordOf(Tag.StudyDate),
-    keywordOf(Tag.StudyID),
-    keywordOf(Tag.StudyTime),
-    keywordOf(Tag.VerifyingObserverIdentificationCodeSequence),
+  val TAGS_TO_ACTIONS = Map[String, (DataFrame, String, VR) => DataFrame](
+    keywordOf(Tag.GraphicAnnotationSequence) -> replace,
+    keywordOf(Tag.PersonIdentificationCodeSequence) -> replace,
+    keywordOf(Tag.PersonName) -> replace,
+    keywordOf(Tag.VerifyingObserverName) -> replace,
+    keywordOf(Tag.VerifyingObserverSequence) -> replace,
+    keywordOf(Tag.AccessionNumber) -> replace,
+    keywordOf(Tag.ContentCreatorName) -> replace,
+    keywordOf(Tag.FillerOrderNumberImagingServiceRequest) -> replace,
+    keywordOf(Tag.PatientID) -> replace,
+    keywordOf(Tag.PatientBirthDate) -> replace,
+    keywordOf(Tag.PatientName) -> replace,
+    keywordOf(Tag.PatientSex) -> replace,
+    keywordOf(Tag.PlacerOrderNumberImagingServiceRequest) -> replace,
+    keywordOf(Tag.ReferringPhysicianName) -> replace,
+    keywordOf(Tag.StudyDate) -> replace,
+    keywordOf(Tag.StudyID) -> replace,
+    keywordOf(Tag.StudyTime) -> replace,
+    keywordOf(Tag.VerifyingObserverIdentificationCodeSequence) -> replace,
   )
 
-  def replace(dataframe: DataFrame): DataFrame = {
-    import VR._
+  def replace(dataframe: DataFrame, keyword: String, vr: VR): DataFrame = {
 
+    vr match {
+      case LO | SH | PN | CS => dataframe.withColumn(keyword, lit(DUMMY_ANONYMIZED_STRING))
+      case DA => dataframe.withColumn(keyword, lit(DUMMY_DATE))
+      case TM => dataframe.withColumn(keyword, lit(DUMMY_TIME))
+      case DT => dataframe.withColumn(keyword, lit(DUMMY_TIME))
+      case UI => dataframe.withColumn(keyword, md5(col(keyword)))
+      case IS => dataframe.withColumn(keyword, lit(DUMMY_ZERO_STRING))
+      case FD | FL | SS | US => dataframe.withColumn(keyword, lit(DUMMY_ZERO_INT))
+      case ST => dataframe.withColumn(keyword, lit(DUMMY_EMPTY_STRING))
+      case _ => dataframe
+    }
+  }
+
+  def deidentify(dataframe: DataFrame): DataFrame = {
     var result = dataframe
 
-    KEYWORDS_TO_REPLACE.foreach(keyword => {
-      val vr = DicomStandardDictionary.keywordMap.get(keyword) match { 
-        case Some(stdElem) => stdElem.vr 
-        case _ =>
-      }
-      
-      vr match {
-        case Right(LO) | Right(SH) | Right(PN) | Right(CS) => result = result.withColumn(keyword, lit(DUMMY_ANONYMIZED_STRING))
-        case Right(DA) => result = result.withColumn(keyword, lit(DUMMY_DATE))
-        case Right(TM) => result = result.withColumn(keyword, lit(DUMMY_TIME))
-        case Right(DT) => result = result.withColumn(keyword, lit(DUMMY_TIME))
-        case Right(UI) => result = result.withColumn(keyword, md5(col(keyword)))
-        case Right(IS) => result = result.withColumn(keyword, lit(DUMMY_ZERO_STRING))
-        case Right(FD) | Right(FL) | Right(SS) | Right(US) => result = result.withColumn(keyword, lit(DUMMY_ZERO_INT))
-        case Right(ST) => result = result.withColumn(keyword, lit(DUMMY_EMPTY_STRING))
+    TAGS_TO_ACTIONS.foreach( keywordAction => {
+      val vr = DicomStandardDictionary.keywordMap.get(keywordAction._1) match { 
+        case Some(stdElem) => stdElem.vr match {
+          case Right(vr) => result = keywordAction._2(result, keywordAction._1, vr)
+          case _ => 
+        } 
         case _ =>
       }
     })
-    result
-  }
-
-  def deid(dataframe: DataFrame): DataFrame = {
-    var result = dataframe
-    result = replace(result)
     result
   }
 }
