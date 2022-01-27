@@ -5,8 +5,6 @@ import ai.kaiko.dicom.DicomDeidentifyDictionary.{
   DUMMY_DATE,
   DUMMY_TIME,
   DUMMY_DATE_TIME,
-  ZERO_STRING,
-  ZERO_INT,
   EMPTY_STRING,
   DUMMY_STRING
 }
@@ -59,7 +57,14 @@ class TestDicomDeidentifier
     spark.stop
   }
 
-  val SOME_DROPPED_COLUMN = "ContainerComponentID"
+  val SOME_DROPPED_COL = keywordOf(Tag.ContainerComponentID)
+  val SOME_DUMMY_DATE_COL = keywordOf(Tag.ContentDate)
+  val SOME_DUMMY_TIME_COL = keywordOf(Tag.ContentTime)
+  val SOME_DUMMY_DATE_TIME_COL = keywordOf(Tag.AttributeModificationDateTime)
+  val SOME_DUMMY_STRING_COL = keywordOf(Tag.AnnotationGroupLabel)
+  val SOME_ZERO_INT_COL = keywordOf(Tag.PregnancyStatus)
+  val SOME_ZERO_STRING_COL = keywordOf(Tag.ConceptualVolumeDescription)
+  val SOME_EMPTY_STRING_COL = keywordOf(Tag.ConceptualVolumeDescription)
 
   describe("Spark") {
     it("Deidentify DICOM DataFrame") {
@@ -72,36 +77,37 @@ class TestDicomDeidentifier
       val row = df.first
 
       assert(
-        row.getAs[String](keywordOf(Tag.ContentDate))
+        row.getAs[String](SOME_DUMMY_DATE_COL)
           === DUMMY_DATE
       )
       assert(
-        row.getAs[String](keywordOf(Tag.ContentTime))
+        row.getAs[String](SOME_DUMMY_TIME_COL)
           === DUMMY_TIME
       )
       assert(
-        row.getAs[String](keywordOf(Tag.AttributeModificationDateTime))
+        row.getAs[String](SOME_DUMMY_DATE_TIME_COL)
           === DUMMY_DATE_TIME
       )
       assert(
-        row.getAs[String](keywordOf(Tag.AnnotationGroupLabel))
+        row.getAs[String](SOME_DUMMY_STRING_COL)
           === DUMMY_STRING
       )
+      assert(
+        row.getAs[String](SOME_EMPTY_STRING_COL)
+          === EMPTY_STRING
+      )
+      assertThrows[IllegalArgumentException]{
+        row.fieldIndex(SOME_DROPPED_COL)
+      }
+      // No zero string/int cols in basic profile. To be added later
       // assert(
-      //   row.getAs[String](keywordOf(Tag.SimpleFrameList))
+      //   row.getAs[Int](SOME_ZERO_INT_COL)
       //     === ZERO_INT
       // )
       // assert(
-      //   row.getAs[String](keywordOf(Tag.AnnotationGroupLabel))
+      //   row.getAs[String](SOME_ZERO_STRING_COL)
       //     === ZERO_STRING
       // )
-      // assert(
-      //   row.getAs[String](keywordOf(Tag.AnnotationGroupLabel))
-      //     === EMPTY_STRING
-      // )
-      assertThrows[IllegalArgumentException]{
-        row.fieldIndex(SOME_DROPPED_COLUMN)
-      }
     }
   }
 }
