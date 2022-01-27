@@ -25,6 +25,8 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.10" % "test"
 libraryDependencies += "org.dcm4che" % "dcm4che-core" % "5.24.2"
 libraryDependencies += "org.dcm4che" % "dcm4che-imageio" % "5.24.2"
 
+Test / parallelExecution := false
+
 // assembly / mainClass := Some("ai.kaiko.dicom.app.Main")
 ThisBuild / organization := "ai.kaiko"
 ThisBuild / organizationName := "Kaiko"

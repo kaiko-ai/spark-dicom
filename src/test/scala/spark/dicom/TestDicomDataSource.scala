@@ -17,7 +17,6 @@
 package ai.kaiko.spark.dicom
 
 import ai.kaiko.spark.dicom.v2.DicomDataSource
-import ai.kaiko.spark.WithSpark
 import org.apache.log4j.Level
 import org.apache.log4j.LogManager
 import org.apache.log4j.Priority
@@ -28,13 +27,16 @@ import org.dcm4che3.data.Keyword.{valueOf => keywordOf}
 import org.dcm4che3.data._
 import org.dcm4che3.io.DicomOutputStream
 import org.scalatest.CancelAfterFailure
-import org.scalatest.DoNotDiscover
 import org.scalatest.funspec.AnyFunSpec
 
 import java.io.File
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+
+import org.apache.spark.sql.SparkSession
+import org.apache.log4j.Level
+import org.scalatest.BeforeAndAfterAll
 
 object TestDicomDataSource {
   val SOME_DICOM_FILEPATH =
@@ -55,11 +57,19 @@ object TestDicomDataSource {
   val SOME_NONDICOM_FILEPATH = "src/test/resources/nonDicom/test.txt"
 }
 
-@DoNotDiscover
+trait WithSpark {
+  var spark = {
+    val spark = SparkSession.builder.master("local").getOrCreate
+    spark.sparkContext.setLogLevel(Level.ERROR.toString())
+    spark
+  }
+}
+
 class TestDicomDataSource
     extends AnyFunSpec
-    with WithSpark
-    with CancelAfterFailure {
+    with BeforeAndAfterAll
+    with CancelAfterFailure
+    with WithSpark {
   import TestDicomDataSource._
 
   val logger = {
