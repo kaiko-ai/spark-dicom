@@ -18,6 +18,7 @@ package ai.kaiko.spark.dicom.deidentifier
 
 import ai.kaiko.dicom.DicomDeidentifyDictionary
 import ai.kaiko.dicom.DicomStandardDictionary
+import org.apache.spark.sql.Column
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.dcm4che3.data._
@@ -29,56 +30,91 @@ case class DicomDeidAction(
   action: String
 )
 
+case class DicomDeidColumns(
+  keep: Seq[Column],
+  empty: Seq[Column],
+  replace: Seq[Column],
+  clean: Seq[Column],
+  pseudonymize: Seq[Column],
+  drop: Seq[String]
+)
+
 object DicomDeidentifier {
 
+  // instead of being hardcoded, will later be calculated based on security profile
+  val keepActions = Seq("K")
+  val emptyActions = Seq("Z", "Z/D")
+  val replaceActions = Seq("D", "D/X")
+  val cleanActions = Seq("C")
+  val pseudonymizeActions = Seq("U")
+  val dropActions = Seq("X", "X/Z", "X/D", "X/Z/D", "X/Z/U*")
+
+  lazy val deidActionGroups = DicomDeidentifyDictionary.elements
+      .map(deidElem => (deidElem, DicomStandardDictionary.keywordMap.get(deidElem.keyword)))
+      .collect({
+        case (deidElem, Some(stdElem)) => (deidElem, stdElem.vr)
+      })
+      .collect({
+        case (deidElem, Right(vr)) => DicomDeidAction(deidElem.keyword, vr, deidElem.action)
+      })
+      .groupBy(_.action)
+
+  /** De-identifies a Dataframe that was loaded with the `dicomFile` format
+   * according to the Basic Confidentiality Profile. See:
+   *  https://dicom.nema.org/medical/dicom/current/output/html/part15.html#chapter_E
+   *
+   *  @param dataframe columns need to be keywords as defined in the DICOM standard
+   */
   def deidentify(dataframe: DataFrame): DataFrame = {
 
-    val deidActions: Array[DicomDeidAction] = DicomDeidentifyDictionary.elements.flatMap(
-      deidElem => DicomStandardDictionary.keywordMap.get(deidElem.keyword) match {
-        case Some(stdElem) => stdElem.vr match {
-          case Right(vr) => Some(DicomDeidAction(deidElem.keyword, vr, deidElem.action))
-          case _ => None
-        }
-        case _ => None
-      }
+    // Dataframe columns should be DICOM keywords
+    val cols = DicomDeidColumns(
+      keep =
+        keepActions
+          .map(deidActionGroups.getOrElse(_, Array.empty))
+          .flatten
+          .map(deid => col(deid.keyword)),
+      empty = 
+        emptyActions
+          .map(deidActionGroups.getOrElse(_, Array.empty))
+          .flatten
+          .map(deid => (deid.keyword, DicomDeidentifyDictionary.getEmptyValue(deid.vr)))
+          .collect({
+            case (keyword, Some(emptyVal)) => lit(emptyVal).as(keyword)
+          }),
+      replace =
+        replaceActions
+          .map(deidActionGroups.getOrElse(_, Array.empty))
+          .flatten
+          .map(deid => (deid.keyword, DicomDeidentifyDictionary.getDummyValue(deid.vr)))
+          .collect({
+            case (keyword, Some(dummyVal)) => lit(dummyVal).as(keyword)
+          }),
+      clean = 
+        cleanActions
+          .map(deidActionGroups.getOrElse(_, Array.empty))
+          .flatten
+          .map(deid => lit("ToClean").as(deid.keyword)),
+      pseudonymize =
+        pseudonymizeActions
+          .map(deidActionGroups.getOrElse(_, Array.empty))
+          .flatten
+          .map(deid => lit("ToPseudo").as(deid.keyword)),
+      drop = 
+        dropActions
+          .map(deidActionGroups.getOrElse(_, Array.empty))
+          .flatten
+          .map(_.keyword)
     )
 
-    val deidActionGroups = deidActions.groupBy(_.action)
-
-    val toKeep = deidActionGroups.getOrElse("K", Array())
-    val toEmpty = deidActionGroups.getOrElse("Z", Array()) ++ deidActionGroups.getOrElse("Z/D", Array())
-    val toReplace = deidActionGroups.getOrElse("D", Array()) ++ deidActionGroups.getOrElse("D/X", Array())
-    val toClean = deidActionGroups.getOrElse("C", Array())
-    val toPseudonymize = deidActionGroups.getOrElse("U", Array())
-    val toDrop = 
-      deidActionGroups.getOrElse("X", Array()) ++ 
-      deidActionGroups.getOrElse("X/Z", Array()) ++ 
-      deidActionGroups.getOrElse("X/D", Array()) ++
-      deidActionGroups.getOrElse("X/Z/D", Array()) ++
-      deidActionGroups.getOrElse("X/Z/U*", Array())
-
-    val keepCols = toKeep.map(deid => col(deid.keyword))
-    val emptyCols = toEmpty.flatMap(deid => {
-        DicomDeidentifyDictionary.getEmptyValue(deid.vr) match {
-          case Some(emptyVal) => Some(lit(emptyVal).as(deid.keyword))
-          case _ => None
-        }
-      })
-    val replaceCols = toReplace.flatMap(deid => {
-        DicomDeidentifyDictionary.getDummyValue(deid.vr) match {
-          case Some(dummyVal) => Some(lit(dummyVal).as(deid.keyword))
-          case _ => None
-        }
-      })
-
-    // implement later
-    val cleanCols = toClean.map(deid => lit("ToClean").as(deid.keyword))
-    val pseudonymizeCols = toPseudonymize.map(deid => lit("ToPseudonymize").as(deid.keyword))
-
-    val dropCols = toDrop.map(_.keyword)
-
     dataframe
-      .select(col("*") +: (keepCols ++ emptyCols ++ replaceCols ++ cleanCols ++ pseudonymizeCols): _*)
-      .drop(dropCols: _*)
+      .select(col("*") +: (
+        cols.keep ++ 
+        cols.empty ++ 
+        cols.replace ++ 
+        cols.clean ++ 
+        cols.pseudonymize
+      ): _*)
+      .drop(cols.drop: _*)
   }
 }
