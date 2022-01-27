@@ -14,7 +14,7 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-package ai.kaiko.spark.dicom
+package ai.kaiko.spark.dicom.deidentifier
 
 import ai.kaiko.dicom.DicomStandardDictionary
 import ai.kaiko.dicom.DicomDeidentifyDictionary

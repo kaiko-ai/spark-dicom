@@ -17,32 +17,24 @@
 package ai.kaiko.spark.dicom
 
 import ai.kaiko.spark.dicom.v2.DicomDataSource
+import ai.kaiko.spark.WithSpark
 import org.apache.log4j.Level
 import org.apache.log4j.LogManager
 import org.apache.log4j.Priority
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.streaming.Trigger
 import org.dcm4che3.data.Keyword.{valueOf => keywordOf}
 import org.dcm4che3.data._
 import org.dcm4che3.io.DicomOutputStream
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.CancelAfterFailure
+import org.scalatest.DoNotDiscover
 import org.scalatest.funspec.AnyFunSpec
 
 import java.io.File
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-
-trait WithSpark {
-  var spark = {
-    val spark = SparkSession.builder.master("local").getOrCreate
-    spark.sparkContext.setLogLevel(Level.ERROR.toString())
-    spark
-  }
-}
 
 object TestDicomDataSource {
   val SOME_DICOM_FILEPATH =
@@ -63,10 +55,10 @@ object TestDicomDataSource {
   val SOME_NONDICOM_FILEPATH = "src/test/resources/nonDicom/test.txt"
 }
 
+@DoNotDiscover
 class TestDicomDataSource
     extends AnyFunSpec
     with WithSpark
-    with BeforeAndAfterAll
     with CancelAfterFailure {
   import TestDicomDataSource._
 
@@ -74,10 +66,6 @@ class TestDicomDataSource
     val logger = LogManager.getLogger(getClass.getName);
     logger.setLevel(Level.DEBUG)
     logger
-  }
-
-  override protected def afterAll(): Unit = {
-    spark.stop
   }
 
   describe("Spark") {

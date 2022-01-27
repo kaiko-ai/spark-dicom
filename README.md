@@ -46,7 +46,7 @@ spark.read.format("dicomFile").option("includePixelData", true).load("/some/hdfs
 The DICOM dataframe can be de-identified according to the Basic Confidentiality Profile in the [DICOM standard](https://dicom.nema.org/medical/dicom/current/output/html/part15.html#chapter_E). To use the de-identifier, do the following in scala:
 
 ```scala
-import ai.kaiko.spark.dicom.DicomDeidentifier._
+import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
 
 df = spark.read.format("dicomFile").load("/some/hdfs/path")
 df = deidentify(df)
