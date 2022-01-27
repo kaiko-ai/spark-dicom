@@ -40,6 +40,20 @@ spark.read.format("dicomFile").option("includePixelData", true).load("/some/hdfs
 
 - `isDicom`: `true` if file was read as a DICOM file, `false` otherwise
 
+
+## De-identification
+
+The DICOM dataframe can be de-identified according to the Basic Confidentiality Profile in the [DICOM standard](https://dicom.nema.org/medical/dicom/current/output/html/part15.html#chapter_E). To use the de-identifier, do the following in scala:
+
+```scala
+import ai.kaiko.spark.dicom.DicomDeidentifier._
+
+df = spark.read.format("dicomFile").load("/some/hdfs/path")
+df = deidentify(df)
+```
+
+The resulting dataframe will have all the columns dropped/emptied/dummyfied according to the actions described [here](https://dicom.nema.org/medical/dicom/current/output/html/part15.html#table_E.1-1).
+
 ## Development
 
 ### Development shell
