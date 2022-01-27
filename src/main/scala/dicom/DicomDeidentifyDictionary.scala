@@ -16,16 +16,16 @@
 // under the License.
 package ai.kaiko.dicom
 
-import scala.util.Try
-import scala.xml.XML
 import org.dcm4che3.data.Keyword
 import org.dcm4che3.data.VR
 import org.dcm4che3.data.VR._
 
 import java.time.LocalDate
-import java.time.LocalTime
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import scala.util.Try
+import scala.xml.XML
 
 case class DicomDeidElem(
   tag: Int,

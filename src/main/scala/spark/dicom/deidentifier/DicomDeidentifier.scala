@@ -16,11 +16,11 @@
 // under the License.
 package ai.kaiko.spark.dicom.deidentifier
 
-import ai.kaiko.dicom.DicomStandardDictionary
 import ai.kaiko.dicom.DicomDeidentifyDictionary
+import ai.kaiko.dicom.DicomStandardDictionary
 import org.apache.spark.sql.DataFrame
-import org.dcm4che3.data._
 import org.apache.spark.sql.functions._
+import org.dcm4che3.data._
 
 
 case class DicomDeidAction(
