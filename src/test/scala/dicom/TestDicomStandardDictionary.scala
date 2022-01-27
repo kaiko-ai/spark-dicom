@@ -16,33 +16,21 @@
 // under the License.
 package ai.kaiko.dicom
 
+import org.dcm4che3.data.VR
 import org.scalatest.funspec.AnyFunSpec
-import org.dcm4che3.data.Keyword.{valueOf => keywordOf}
-import org.dcm4che3.data._
 
-class TestDicomDeidentifyDictionary extends AnyFunSpec {
-
-  val FIRST_ELEMENT_TAG = Tag.AccessionNumber 
-
-  describe("DicomDeidentifyDictionary") {
+class TestDicomStandardDictionary extends AnyFunSpec {
+  describe("DicomStandardDictionary") {
     it("builds list of dictionary for standard elements") {
-      assert(DicomDeidentifyDictionary.elements.size > 0)
+      assert(DicomStandardDictionary.elements.size > 0)
     }
-    it("loads keyword") {
-      val fstElem = DicomDeidentifyDictionary.elements(0)
-      assert(fstElem.keyword === keywordOf(FIRST_ELEMENT_TAG))
+    it("loads tag to int") {
+      val fstElem = DicomStandardDictionary.elements(0)
+      assert(fstElem.tag === 0x00080001)
     }
-    it("loads action") {
-      val fstElem = DicomDeidentifyDictionary.elements(0)
-      assert(fstElem.action === "Z")
-    }
-    it("loads name") {
-      val fstElem = DicomDeidentifyDictionary.elements(0)
-      assert(fstElem.name === "Accession Number")
-    }
-    it("loads tag") {
-      val fstElem = DicomDeidentifyDictionary.elements(0)
-      assert(fstElem.tag === FIRST_ELEMENT_TAG)
+    it("loads VR to dcm4che's VR") {
+      val fstElem = DicomStandardDictionary.elements(0)
+      assert(fstElem.vr.isRight && fstElem.vr.right.get === VR.UL)
     }
   }
 }
