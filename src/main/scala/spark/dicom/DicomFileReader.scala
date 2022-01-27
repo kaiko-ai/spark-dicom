@@ -29,8 +29,8 @@ import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.util.SerializableConfiguration
-import org.dcm4che3.data
 import org.dcm4che3.io.DicomInputStream
+import org.dcm4che3.{data => dcmData}
 
 import java.net.URI
 import scala.util.Failure
@@ -74,7 +74,7 @@ object DicomFileReader {
     val status = fs.getFileStatus(path)
 
     val readPixelData = requiredSchema.fieldNames.contains(
-      data.Keyword.valueOf(data.Tag.PixelData)
+      dcmData.Keyword.valueOf(dcmData.Tag.PixelData)
     )
 
     val fileStream = fs.open(status.getPath)
@@ -135,7 +135,7 @@ object DicomFileReader {
                   keyConverter =
                     (v: Any) => UTF8String.fromString(v.asInstanceOf[String]),
                   valueConverter = (v: Any) =>
-                    UTF8String.fromString(v.asInstanceOf[data.VR].name)
+                    UTF8String.fromString(v.asInstanceOf[dcmData.VR].name)
                 )
               )
               FieldWritten()
