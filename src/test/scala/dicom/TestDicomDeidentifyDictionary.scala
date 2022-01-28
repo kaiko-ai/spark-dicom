@@ -22,7 +22,7 @@ import org.dcm4che3.data._
 
 class TestDicomDeidentifyDictionary extends AnyFunSpec {
 
-  val FIRST_ELEMENT_TAG = Tag.AccessionNumber 
+  val FIRST_ELEMENT_TAG = Tag.AccessionNumber
 
   describe("DicomDeidentifyDictionary") {
     it("builds list of dictionary for standard elements") {

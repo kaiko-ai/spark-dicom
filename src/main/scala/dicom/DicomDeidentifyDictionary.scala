@@ -28,17 +28,21 @@ import scala.util.Try
 import scala.xml.XML
 
 case class DicomDeidElem(
-  tag: Int,
-  name: String,
-  keyword: String,
-  action: String
+    tag: Int,
+    name: String,
+    keyword: String,
+    action: String
 )
 
 object DicomDeidentifyDictionary {
 
-  val DUMMY_DATE = LocalDate.of(1, 1, 1).format(DateTimeFormatter.ISO_LOCAL_DATE)
-  val DUMMY_TIME = LocalTime.of(0, 0, 0, 0).format(DateTimeFormatter.ISO_LOCAL_TIME)
-  val DUMMY_DATE_TIME = LocalDateTime.of(LocalDate.of(1, 1, 1), LocalTime.of(0, 0, 0, 0)).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+  val DUMMY_DATE =
+    LocalDate.of(1, 1, 1).format(DateTimeFormatter.ISO_LOCAL_DATE)
+  val DUMMY_TIME =
+    LocalTime.of(0, 0, 0, 0).format(DateTimeFormatter.ISO_LOCAL_TIME)
+  val DUMMY_DATE_TIME = LocalDateTime
+    .of(LocalDate.of(1, 1, 1), LocalTime.of(0, 0, 0, 0))
+    .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
   val ZERO_STRING = "0"
   val ZERO_INT = 0
   val EMPTY_STRING = ""
@@ -54,11 +58,11 @@ object DicomDeidentifyDictionary {
           DICOM_DEID_XML_DOC_FILEPATH
         )
       ).get
-      val dicomDeidXmlDoc = XML.load(xmlResourceInputStream)
-      // find relevant xml table holding dict
-      ((dicomDeidXmlDoc \\ "table" filter (elem =>
-        elem \@ "label" == "E.1-1"
-      )) \ "tbody" \ "tr")
+    val dicomDeidXmlDoc = XML.load(xmlResourceInputStream)
+    // find relevant xml table holding dict
+    ((dicomDeidXmlDoc \\ "table" filter (elem =>
+      elem \@ "label" == "E.1-1"
+    )) \ "tbody" \ "tr")
       // to Map entries
       .map(row => {
         // there is an invisible space in the texts, remove it
@@ -94,23 +98,23 @@ object DicomDeidentifyDictionary {
   def getDummyValue(vr: VR): Option[Any] = {
     vr match {
       case LO | SH | PN | CS => Some(DUMMY_STRING)
-      case DA => Some(DUMMY_DATE)
-      case TM => Some(DUMMY_TIME)
-      case DT => Some(DUMMY_DATE_TIME)
-      case IS => Some(ZERO_STRING)
+      case DA                => Some(DUMMY_DATE)
+      case TM                => Some(DUMMY_TIME)
+      case DT                => Some(DUMMY_DATE_TIME)
+      case IS                => Some(ZERO_STRING)
       case FD | FL | SS | US => Some(ZERO_INT)
-      case ST => Some(EMPTY_STRING)
-      case _ => None
+      case ST                => Some(EMPTY_STRING)
+      case _                 => None
     }
   }
 
   def getEmptyValue(vr: VR): Option[Any] = {
     vr match {
       case SH | PN | UI | LO | CS => Some(EMPTY_STRING)
-      case DA => Some(DUMMY_DATE)
-      case TM => Some(DUMMY_TIME)
-      case UL => Some(ZERO_INT)
-      case _ => None
+      case DA                     => Some(DUMMY_DATE)
+      case TM                     => Some(DUMMY_TIME)
+      case UL                     => Some(ZERO_INT)
+      case _                      => None
     }
   }
 }

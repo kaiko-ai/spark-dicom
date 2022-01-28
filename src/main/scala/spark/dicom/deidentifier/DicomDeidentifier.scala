@@ -18,103 +18,87 @@ package ai.kaiko.spark.dicom.deidentifier
 
 import ai.kaiko.dicom.DicomDeidentifyDictionary
 import ai.kaiko.dicom.DicomStandardDictionary
+import ai.kaiko.dicom.DicomStdElem
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.dcm4che3.data._
 
+sealed trait DeidAction {
+  def deidentify(keyword: String, vr: VR): Option[Column]
+}
+sealed case class Empty() extends DeidAction {
+  def deidentify(keyword: String, vr: VR): Option[Column] =
+    DicomDeidentifyDictionary.getEmptyValue(vr) match {
+      case Some(emptyVal) => Some(lit(emptyVal).as(keyword))
+      case _              => None
+    }
+}
+sealed case class Replace() extends DeidAction {
+  def deidentify(keyword: String, vr: VR): Option[Column] =
+    DicomDeidentifyDictionary.getDummyValue(vr) match {
+      case Some(dummyVal) => Some(lit(dummyVal).as(keyword))
+      case _              => None
+    }
+}
+sealed case class Clean() extends DeidAction {
+  def deidentify(keyword: String, vr: VR): Option[Column] = Some(
+    lit("ToClean").as(keyword)
+  )
+}
+sealed case class Pseudonymize() extends DeidAction {
+  def deidentify(keyword: String, vr: VR): Option[Column] = Some(
+    lit("ToPseudonymize").as(keyword)
+  )
+}
 
-case class DicomDeidAction(
-  keyword: String,
-  vr: VR,
-  action: String
-)
+sealed case class Drop() extends DeidAction {
+  def deidentify(keyword: String, vr: VR): Option[Column] = None
+}
 
-case class DicomDeidColumns(
-  keep: Seq[Column],
-  empty: Seq[Column],
-  replace: Seq[Column],
-  clean: Seq[Column],
-  pseudonymize: Seq[Column],
-  drop: Seq[String]
-)
+sealed case class Keep() extends DeidAction {
+  def deidentify(keyword: String, vr: VR): Option[Column] = Some(col(keyword))
+}
 
 object DicomDeidentifier {
 
-  // instead of being hardcoded, will later be calculated based on security profile
-  val keepActions = Seq("K")
-  val emptyActions = Seq("Z", "Z/D")
-  val replaceActions = Seq("D", "D/X")
-  val cleanActions = Seq("C")
-  val pseudonymizeActions = Seq("U")
-  val dropActions = Seq("X", "X/Z", "X/D", "X/Z/D", "X/Z/U*")
-
-  lazy val deidActionGroups = DicomDeidentifyDictionary.elements
-      .map(deidElem => (deidElem, DicomStandardDictionary.keywordMap.get(deidElem.keyword)))
-      .collect({
-        case (deidElem, Some(stdElem)) => (deidElem, stdElem.vr)
-      })
-      .collect({
-        case (deidElem, Right(vr)) => DicomDeidAction(deidElem.keyword, vr, deidElem.action)
-      })
-      .groupBy(_.action)
+  def getAction(action: String): DeidAction = action match {
+    case "Z" | "Z/D"                              => Empty()
+    case "D" | "D/X"                              => Replace()
+    case "C"                                      => Clean()
+    case "U"                                      => Pseudonymize()
+    case "X" | "X/Z" | "X/D" | "X/Z/D" | "X/Z/U*" => Drop()
+    case "K"                                      => Keep()
+  }
 
   /** De-identifies a Dataframe that was loaded with the `dicomFile` format
-   * according to the Basic Confidentiality Profile. See:
-   *  https://dicom.nema.org/medical/dicom/current/output/html/part15.html#chapter_E
-   *
-   *  @param dataframe columns need to be keywords as defined in the DICOM standard
-   */
+    * according to the Basic Confidentiality Profile. See:
+    * https://dicom.nema.org/medical/dicom/current/output/html/part15.html#chapter_E
+    *
+    * @param dataframe
+    *   columns need to be keywords as defined in the DICOM standard
+    */
   def deidentify(dataframe: DataFrame): DataFrame = {
 
-    // Dataframe columns should be DICOM keywords
-    val cols = DicomDeidColumns(
-      keep =
-        keepActions
-          .map(deidActionGroups.getOrElse(_, Array.empty))
-          .flatten
-          .map(deid => col(deid.keyword)),
-      empty = 
-        emptyActions
-          .map(deidActionGroups.getOrElse(_, Array.empty))
-          .flatten
-          .map(deid => (deid.keyword, DicomDeidentifyDictionary.getEmptyValue(deid.vr)))
-          .collect({
-            case (keyword, Some(emptyVal)) => lit(emptyVal).as(keyword)
-          }),
-      replace =
-        replaceActions
-          .map(deidActionGroups.getOrElse(_, Array.empty))
-          .flatten
-          .map(deid => (deid.keyword, DicomDeidentifyDictionary.getDummyValue(deid.vr)))
-          .collect({
-            case (keyword, Some(dummyVal)) => lit(dummyVal).as(keyword)
-          }),
-      clean = 
-        cleanActions
-          .map(deidActionGroups.getOrElse(_, Array.empty))
-          .flatten
-          .map(deid => lit("ToClean").as(deid.keyword)),
-      pseudonymize =
-        pseudonymizeActions
-          .map(deidActionGroups.getOrElse(_, Array.empty))
-          .flatten
-          .map(deid => lit("ToPseudo").as(deid.keyword)),
-      drop = 
-        dropActions
-          .map(deidActionGroups.getOrElse(_, Array.empty))
-          .flatten
-          .map(_.keyword)
-    )
+    val columns = dataframe.columns
+      .map(keyword => {
+        val stdElem = DicomStandardDictionary.keywordMap.get(keyword)
+        val deidElem = DicomDeidentifyDictionary.keywordMap.get(keyword)
+        (keyword, stdElem, deidElem)
+      })
+      .collect({
+        case (
+              keyword,
+              Some(DicomStdElem(_, _, _, Right(vr), _, _)),
+              Some(deidElem)
+            ) =>
+          getAction(deidElem.action).deidentify(keyword, vr)
+        case (keyword, _, _) => Some(col(keyword))
+      })
+      .collect({ case Some(column) =>
+        column
+      })
 
-    dataframe
-      .select(col("*") +: (
-        cols.keep ++ 
-        cols.empty ++ 
-        cols.replace ++ 
-        cols.clean ++ 
-        cols.pseudonymize
-      ): _*)
-      .drop(cols.drop: _*)
+    dataframe.select(columns: _*)
   }
 }

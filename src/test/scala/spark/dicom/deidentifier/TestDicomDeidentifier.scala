@@ -78,10 +78,10 @@ class TestDicomDeidentifier
   val SOME_DUMMY_STRING_COL = keywordOf(Tag.AnnotationGroupLabel)
   val SOME_ZERO_INT_COL = keywordOf(Tag.PregnancyStatus)
   val SOME_ZERO_STRING_COL = keywordOf(Tag.ConceptualVolumeDescription)
-  val SOME_EMPTY_STRING_COL = keywordOf(Tag.ConceptualVolumeDescription)
+  val SOME_EMPTY_STRING_COL = keywordOf(Tag.AccessionNumber)
 
   describe("Spark") {
-    it("Deidentify DICOM DataFrame") {
+    it("Deidentifies DICOM dataframe") {
       var df = spark.read
         .format("dicomFile")
         .load(SOME_DICOM_FILEPATH)
@@ -110,7 +110,7 @@ class TestDicomDeidentifier
         row.getAs[String](SOME_EMPTY_STRING_COL)
           === EMPTY_STRING
       )
-      assertThrows[IllegalArgumentException]{
+      assertThrows[IllegalArgumentException] {
         row.fieldIndex(SOME_DROPPED_COL)
       }
       // No zero string/int cols in basic profile. To be added later
