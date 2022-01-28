@@ -17,6 +17,7 @@
 package ai.kaiko.spark.dicom
 
 import ai.kaiko.dicom.DicomStandardDictionary
+import org.apache.commons.io.IOUtils
 import org.apache.hadoop.fs.Path
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.catalyst.InternalRow
@@ -151,7 +152,7 @@ object DicomFileReader {
         }
         case (FIELD_NAME_CONTENT, i) => {
           val fileStream = fs.open(status.getPath)
-          val bytes = fileStream.readAllBytes
+          val bytes = IOUtils.toByteArray(fileStream)
           val writer = InternalRow.getWriter(i, BinaryType)
           writer(mutableRow, bytes)
           FieldWritten()
