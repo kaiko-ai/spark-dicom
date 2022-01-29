@@ -17,6 +17,7 @@
 package ai.kaiko.spark.dicom.deidentifier
 
 import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
+import ai.kaiko.dicom.DicomDeidElem
 import ai.kaiko.dicom.DicomDeidentifyDictionary.{
   DUMMY_DATE,
   DUMMY_TIME,
@@ -79,9 +80,10 @@ class TestDicomDeidentifier
   val SOME_ZERO_INT_COL = keywordOf(Tag.PregnancyStatus)
   val SOME_ZERO_STRING_COL = keywordOf(Tag.ConceptualVolumeDescription)
   val SOME_EMPTY_STRING_COL = keywordOf(Tag.AccessionNumber)
+  val SOME_CLEANED_COL = keywordOf(Tag.AcquisitionComments)
 
   describe("Spark") {
-    it("Deidentifies DICOM dataframe") {
+    it("Deidentifies DICOM dataframe using basic profile") {
       var df = spark.read
         .format("dicomFile")
         .load(SOME_DICOM_FILEPATH)
@@ -122,6 +124,78 @@ class TestDicomDeidentifier
       //   row.getAs[String](SOME_ZERO_STRING_COL)
       //     === ZERO_STRING
       // )
+    }
+    it("Deidentifies DICOM dataframe using an option") {
+      var df = spark.read
+        .format("dicomFile")
+        .load(SOME_DICOM_FILEPATH)
+
+      val options = Seq(
+        CleanDesc()
+      )
+
+      df = deidentify(df, options)
+
+      val row = df.first
+
+      assert(
+        row.getAs[String](SOME_CLEANED_COL)
+          === "ToClean"
+      )
+    }
+  }
+  describe("Deidentifier") {
+    it("getAction returns default action when no options given") {
+      val deidElem = DicomDeidElem(
+        tag = 0,
+        name = "test",
+        keyword = "test",
+        action = "X",
+        retainUidsAction = Some("D")
+      )
+      assert(DicomDeidentifier.getAction(deidElem) === Drop())
+    }
+    it("getAction returns correct action when option is given") {
+      val deidElem = DicomDeidElem(
+        tag = 0,
+        name = "test",
+        keyword = "test",
+        action = "X",
+        retainUidsAction = Some("D")
+      )
+      val options = Seq(RetainUids())
+      assert(DicomDeidentifier.getAction(deidElem, options) === Dummify())
+    }
+    it("getAction returns correct action when multiple options are given") {
+      val deidElem = DicomDeidElem(
+        tag = 0,
+        name = "test",
+        keyword = "test",
+        action = "X",
+        retainUidsAction = Some("D"),
+        retainDevIdAction = Some("Z")
+      )
+      val options = Seq(RetainUids(), RetainDevId())
+      assert(DicomDeidentifier.getAction(deidElem, options) === Empty())
+    }
+    it(
+      "getAction returns correct action when multiple (irrelevant) options are given"
+    ) {
+      val deidElem = DicomDeidElem(
+        tag = 0,
+        name = "test",
+        keyword = "test",
+        action = "X",
+        retainUidsAction = Some("D"),
+        retainDevIdAction = Some("Z")
+      )
+      val options = Seq(
+        RetainUids(),
+        RetainDevId(),
+        RetainLongFullDates(),
+        RetainLongModifDates()
+      )
+      assert(DicomDeidentifier.getAction(deidElem, options) === Empty())
     }
   }
 }

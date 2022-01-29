@@ -31,7 +31,16 @@ case class DicomDeidElem(
     tag: Int,
     name: String,
     keyword: String,
-    action: String
+    action: String,
+    retainUidsAction: Option[String] = None,
+    retainDevIdAction: Option[String] = None,
+    retainInstIdAction: Option[String] = None,
+    retainPatCharsAction: Option[String] = None,
+    retainLongFullDatesAction: Option[String] = None,
+    retainLongModifDatesAction: Option[String] = None,
+    cleanDescAction: Option[String] = None,
+    cleanStructContAction: Option[String] = None,
+    cleanGraphAction: Option[String] = None
 )
 
 object DicomDeidentifyDictionary {
@@ -67,7 +76,7 @@ object DicomDeidentifyDictionary {
       .map(row => {
         // there is an invisible space in the texts, remove it
         val rowCellTexts = row \ "td" map (_.text.trim.replaceAll("​", ""))
-        // we'll keep only std elements with valid hexadecimal tag
+        // we'll keep only elements with valid hexadecimal tag
         Try(
           Integer.parseInt(
             rowCellTexts(1)
@@ -81,7 +90,18 @@ object DicomDeidentifyDictionary {
             tag = intTag,
             name = rowCellTexts(0),
             keyword = Keyword.valueOf(intTag),
-            action = rowCellTexts(4)
+            action = rowCellTexts(4),
+            retainUidsAction = Option(rowCellTexts(6)).filter(_.nonEmpty),
+            retainDevIdAction = Option(rowCellTexts(7)).filter(_.nonEmpty),
+            retainInstIdAction = Option(rowCellTexts(8)).filter(_.nonEmpty),
+            retainPatCharsAction = Option(rowCellTexts(9)).filter(_.nonEmpty),
+            retainLongFullDatesAction =
+              Option(rowCellTexts(10)).filter(_.nonEmpty),
+            retainLongModifDatesAction =
+              Option(rowCellTexts(11)).filter(_.nonEmpty),
+            cleanDescAction = Option(rowCellTexts(12)).filter(_.nonEmpty),
+            cleanStructContAction = Option(rowCellTexts(13)).filter(_.nonEmpty),
+            cleanGraphAction = Option(rowCellTexts(14)).filter(_.nonEmpty)
           )
         )
       })

@@ -16,70 +16,56 @@
 // under the License.
 package ai.kaiko.spark.dicom.deidentifier
 
+import ai.kaiko.dicom.DicomDeidElem
 import ai.kaiko.dicom.DicomDeidentifyDictionary
 import ai.kaiko.dicom.DicomStandardDictionary
 import ai.kaiko.dicom.DicomStdElem
-import org.apache.spark.sql.Column
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
-import org.dcm4che3.data._
-
-sealed trait DeidAction {
-  def deidentify(keyword: String, vr: VR): Option[Column]
-}
-sealed case class Empty() extends DeidAction {
-  def deidentify(keyword: String, vr: VR): Option[Column] =
-    DicomDeidentifyDictionary.getEmptyValue(vr) match {
-      case Some(emptyVal) => Some(lit(emptyVal).as(keyword))
-      case _              => None
-    }
-}
-sealed case class Replace() extends DeidAction {
-  def deidentify(keyword: String, vr: VR): Option[Column] =
-    DicomDeidentifyDictionary.getDummyValue(vr) match {
-      case Some(dummyVal) => Some(lit(dummyVal).as(keyword))
-      case _              => None
-    }
-}
-sealed case class Clean() extends DeidAction {
-  def deidentify(keyword: String, vr: VR): Option[Column] = Some(
-    lit("ToClean").as(keyword)
-  )
-}
-sealed case class Pseudonymize() extends DeidAction {
-  def deidentify(keyword: String, vr: VR): Option[Column] = Some(
-    lit("ToPseudonymize").as(keyword)
-  )
-}
-
-sealed case class Drop() extends DeidAction {
-  def deidentify(keyword: String, vr: VR): Option[Column] = None
-}
-
-sealed case class Keep() extends DeidAction {
-  def deidentify(keyword: String, vr: VR): Option[Column] = Some(col(keyword))
-}
 
 object DicomDeidentifier {
 
-  def getAction(action: String): DeidAction = action match {
-    case "Z" | "Z/D"                              => Empty()
-    case "D" | "D/X"                              => Replace()
-    case "C"                                      => Clean()
-    case "U"                                      => Pseudonymize()
-    case "X" | "X/Z" | "X/D" | "X/Z/D" | "X/Z/U*" => Drop()
-    case "K"                                      => Keep()
+  /** Returns the action to perform on a given column given the selected options
+    * See:
+    * https://dicom.nema.org/medical/dicom/current/output/html/part15.html#table_E.1-1
+    * for the actions corresponding to DICOM keyword & option combination
+    *
+    * @param deidElem
+    *   element from the E.1-1 table
+    * @param options
+    *   sequence of options to use in selecting the right action
+    */
+  def getAction(
+      deidElem: DicomDeidElem,
+      options: Seq[DeidOption] = Seq.empty
+  ): DeidAction = {
+    val deidActions = options
+      .sortBy(_.priority)
+      .map(_.getOptionAction(deidElem))
+      .collect({ case Some(action) =>
+        action
+      })
+
+    deidActions.headOption.getOrElse(deidElem.action) match {
+      case "Z" | "Z/D"                              => Empty()
+      case "D" | "D/X"                              => Dummify()
+      case "C"                                      => Clean()
+      case "U"                                      => Pseudonymize()
+      case "X" | "X/Z" | "X/D" | "X/Z/D" | "X/Z/U*" => Drop()
+      case "K"                                      => Keep()
+    }
   }
 
-  /** De-identifies a Dataframe that was loaded with the `dicomFile` format
-    * according to the Basic Confidentiality Profile. See:
+  /** De-identifies a Dataframe that was loaded with the `dicomFile` format See:
     * https://dicom.nema.org/medical/dicom/current/output/html/part15.html#chapter_E
     *
     * @param dataframe
     *   columns need to be keywords as defined in the DICOM standard
     */
-  def deidentify(dataframe: DataFrame): DataFrame = {
-
+  def deidentify(
+      dataframe: DataFrame,
+      options: Seq[DeidOption] = Seq.empty
+  ): DataFrame = {
     val columns = dataframe.columns
       .map(keyword => {
         val stdElem = DicomStandardDictionary.keywordMap.get(keyword)
@@ -92,7 +78,7 @@ object DicomDeidentifier {
               Some(DicomStdElem(_, _, _, Right(vr), _, _)),
               Some(deidElem)
             ) =>
-          getAction(deidElem.action).deidentify(keyword, vr)
+          getAction(deidElem, options).deidentify(keyword, vr)
         case (keyword, _, _) => Some(col(keyword))
       })
       .collect({ case Some(column) =>
