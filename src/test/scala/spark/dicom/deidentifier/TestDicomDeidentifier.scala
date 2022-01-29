@@ -17,6 +17,7 @@
 package ai.kaiko.spark.dicom.deidentifier
 
 import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
+import ai.kaiko.spark.dicom.deidentifier.options._
 import ai.kaiko.dicom.DicomDeidElem
 import ai.kaiko.dicom.DicomDeidentifyDictionary.{
   DUMMY_DATE,

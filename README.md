@@ -48,11 +48,23 @@ The DICOM dataframe can be de-identified according to the Basic Confidentiality 
 ```scala
 import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
 
-df = spark.read.format("dicomFile").load("/some/hdfs/path")
+var df = spark.read.format("dicomFile").load("/some/hdfs/path")
 df = deidentify(df)
 ```
 
 The resulting dataframe will have all the columns dropped/emptied/dummyfied according to the actions described [here](https://dicom.nema.org/medical/dicom/current/output/html/part15.html#table_E.1-1).
+
+To perform the de-identification with any of the options described in the table, use:
+
+```scala
+import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
+import ai.kaiko.spark.dicom.deidentifier.options.{CleanDesc, RetainUids}
+
+val options = Seq(CleanDesc(), RetainUids())
+
+var df = spark.read.format("dicomFile").load("/some/hdfs/path")
+df = deidentify(df, options)
+```
 
 ## Development
 

@@ -1,4 +1,4 @@
-package ai.kaiko.spark.dicom.deidentifier
+package ai.kaiko.spark.dicom.deidentifier.options
 
 import ai.kaiko.dicom.DicomDeidElem
 

@@ -20,6 +20,7 @@ import ai.kaiko.dicom.DicomDeidElem
 import ai.kaiko.dicom.DicomDeidentifyDictionary
 import ai.kaiko.dicom.DicomStandardDictionary
 import ai.kaiko.dicom.DicomStdElem
+import ai.kaiko.spark.dicom.deidentifier.options._
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
