@@ -58,19 +58,24 @@ To perform the de-identification with any of the options described in the table,
 
 ```scala
 import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
-import ai.kaiko.spark.dicom.deidentifier.options.{CleanDesc, RetainUids}
+import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifierOptions
 
-val options = Seq(CleanDesc(), RetainUids())
+val options = DicomDeidentifierOptions(
+  cleanDesc = true,
+  retainUids = true
+)
 
 var df = spark.read.format("dicomFile").load("/some/hdfs/path")
 df = deidentify(df, options)
 ```
 
 Current limitations of the de-identification are:
-* The columns/tags with the `SQ` VR are ignored
-* Private tags are ignored
-* Pseudonymization (replace uid) is not implemented
-* Cleaning (e.g. removing sensitive data from free text field) is not implemented
+| Expected behavior                            | Current behavior                                         |
+| -------------------------------------------- | -------------------------------------------------------- |
+| Tags with `SQ` VR are de-identified          | Tags with `SQ` VR are ignored                            |
+| Private tags are de-identified               | Private tags are ignored                                 |
+| The `U` action pseudonimizes the value       | The `U` action replaces the value with `ToPseudonimize`  |
+| The `C` action cleans the value of PHI/PII   | The `C` action replaces the value with `ToClean`         |
 
 ## Development
 

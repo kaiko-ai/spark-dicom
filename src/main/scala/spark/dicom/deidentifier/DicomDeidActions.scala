@@ -26,17 +26,11 @@ sealed trait DeidAction {
 }
 sealed case class Empty() extends DeidAction {
   def deidentify(keyword: String, vr: VR): Option[Column] =
-    DicomDeidentifyDictionary.getEmptyValue(vr) match {
-      case Some(emptyVal) => Some(lit(emptyVal).as(keyword))
-      case _              => None
-    }
+    DicomDeidentifyDictionary.getEmptyValue(vr).map(lit(_).as(keyword))
 }
 sealed case class Dummify() extends DeidAction {
   def deidentify(keyword: String, vr: VR): Option[Column] =
-    DicomDeidentifyDictionary.getDummyValue(vr) match {
-      case Some(dummyVal) => Some(lit(dummyVal).as(keyword))
-      case _              => None
-    }
+    DicomDeidentifyDictionary.getDummyValue(vr).map(lit(_).as(keyword))
 }
 sealed case class Clean() extends DeidAction {
   def deidentify(keyword: String, vr: VR): Option[Column] = Some(

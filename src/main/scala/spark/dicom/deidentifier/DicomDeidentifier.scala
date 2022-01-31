@@ -24,30 +24,42 @@ import ai.kaiko.spark.dicom.deidentifier.options._
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 
-object DicomDeidentifier {
+case class DicomDeidentifierOptions(
+    retainUids: Boolean = false,
+    retainDevId: Boolean = false,
+    retainInstId: Boolean = false,
+    retainPatChars: Boolean = false,
+    retainLongFullDates: Boolean = false,
+    retainLongModifDates: Boolean = false,
+    cleanDesc: Boolean = false,
+    cleanStructCont: Boolean = false,
+    cleanGraph: Boolean = false
+) {
 
-  /** Returns the action to perform on a given column given the selected options
-    * See:
-    * https://dicom.nema.org/medical/dicom/current/output/html/part15.html#table_E.1-1
-    * for the actions corresponding to DICOM keyword & option combination
-    *
-    * @param deidElem
-    *   element from the E.1-1 table
-    * @param options
-    *   sequence of options to use in selecting the right action
-    */
-  def getAction(
-      deidElem: DicomDeidElem,
-      options: Seq[DeidOption] = Seq.empty
-  ): DeidAction = {
-    val deidActions = options
-      .sortBy(_.priority)
-      .map(_.getOptionAction(deidElem))
+  val prioritizedOptions: Seq[DeidOption] = {
+    getDeidOption(this.cleanGraph, CleanGraph()) ++
+      getDeidOption(this.cleanStructCont, CleanStructCont()) ++
+      getDeidOption(this.cleanDesc, CleanDesc()) ++
+      getDeidOption(this.retainLongModifDates, RetainLongModifDates()) ++
+      getDeidOption(this.retainLongFullDates, RetainLongFullDates()) ++
+      getDeidOption(this.retainPatChars, RetainPatChars()) ++
+      getDeidOption(this.retainInstId, RetainInstId()) ++
+      getDeidOption(this.retainDevId, RetainDevId()) ++
+      getDeidOption(this.retainUids, RetainUids())
+  }
+
+  def getDeidOption(flag: Boolean, option: DeidOption) = {
+    if (flag) option :: Nil else Nil
+  }
+
+  def getAction(deid: DicomDeidElem): DeidAction = {
+    prioritizedOptions
+      .map(_.getOptionAction(deid))
       .collect({ case Some(action) =>
         action
       })
-
-    deidActions.headOption.getOrElse(deidElem.action) match {
+      .headOption
+      .getOrElse(deid.action) match {
       case "Z" | "Z/D"                              => Empty()
       case "D" | "D/X"                              => Dummify()
       case "C"                                      => Clean()
@@ -56,6 +68,9 @@ object DicomDeidentifier {
       case "K"                                      => Keep()
     }
   }
+}
+
+object DicomDeidentifier {
 
   /** De-identifies a Dataframe that was loaded with the `dicomFile` format See:
     * https://dicom.nema.org/medical/dicom/current/output/html/part15.html#chapter_E
@@ -65,7 +80,7 @@ object DicomDeidentifier {
     */
   def deidentify(
       dataframe: DataFrame,
-      options: Seq[DeidOption] = Seq.empty
+      options: DicomDeidentifierOptions = DicomDeidentifierOptions()
   ): DataFrame = {
     val columns = dataframe.columns
       .map(keyword => {
@@ -79,7 +94,7 @@ object DicomDeidentifier {
               Some(DicomStdElem(_, _, _, Right(vr), _, _)),
               Some(deidElem)
             ) =>
-          getAction(deidElem, options).deidentify(keyword, vr)
+          options.getAction(deidElem).deidentify(keyword, vr)
         case (keyword, _, _) => Some(col(keyword))
       })
       .collect({ case Some(column) =>

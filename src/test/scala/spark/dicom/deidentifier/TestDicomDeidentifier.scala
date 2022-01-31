@@ -17,7 +17,6 @@
 package ai.kaiko.spark.dicom.deidentifier
 
 import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
-import ai.kaiko.spark.dicom.deidentifier.options._
 import ai.kaiko.dicom.DicomDeidElem
 import ai.kaiko.dicom.DicomDeidentifyDictionary.{
   DUMMY_DATE,
@@ -131,8 +130,8 @@ class TestDicomDeidentifier
         .format("dicomFile")
         .load(SOME_DICOM_FILEPATH)
 
-      val options = Seq(
-        CleanDesc()
+      val options = DicomDeidentifierOptions(
+        cleanDesc = true
       )
 
       df = deidentify(df, options)
@@ -154,7 +153,7 @@ class TestDicomDeidentifier
         action = "X",
         retainUidsAction = Some("D")
       )
-      assert(DicomDeidentifier.getAction(deidElem) === Drop())
+      assert(DicomDeidentifierOptions().getAction(deidElem) === Drop())
     }
     it("getAction returns correct action when option is given") {
       val deidElem = DicomDeidElem(
@@ -164,8 +163,8 @@ class TestDicomDeidentifier
         action = "X",
         retainUidsAction = Some("D")
       )
-      val options = Seq(RetainUids())
-      assert(DicomDeidentifier.getAction(deidElem, options) === Dummify())
+      val options = DicomDeidentifierOptions(retainUids = true)
+      assert(options.getAction(deidElem) === Dummify())
     }
     it("getAction returns correct action when multiple options are given") {
       val deidElem = DicomDeidElem(
@@ -176,8 +175,9 @@ class TestDicomDeidentifier
         retainUidsAction = Some("D"),
         retainDevIdAction = Some("Z")
       )
-      val options = Seq(RetainUids(), RetainDevId())
-      assert(DicomDeidentifier.getAction(deidElem, options) === Empty())
+      val options =
+        DicomDeidentifierOptions(retainUids = true, retainDevId = true)
+      assert(options.getAction(deidElem) === Empty())
     }
     it(
       "getAction returns correct action when multiple (irrelevant) options are given"
@@ -190,13 +190,13 @@ class TestDicomDeidentifier
         retainUidsAction = Some("D"),
         retainDevIdAction = Some("Z")
       )
-      val options = Seq(
-        RetainUids(),
-        RetainDevId(),
-        RetainLongFullDates(),
-        RetainLongModifDates()
+      val options = DicomDeidentifierOptions(
+        retainUids = true,
+        retainDevId = true,
+        retainLongFullDates = true,
+        retainLongModifDates = true
       )
-      assert(DicomDeidentifier.getAction(deidElem, options) === Empty())
+      assert(options.getAction(deidElem) === Empty())
     }
   }
 }
