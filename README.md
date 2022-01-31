@@ -66,6 +66,12 @@ var df = spark.read.format("dicomFile").load("/some/hdfs/path")
 df = deidentify(df, options)
 ```
 
+Current limitations of the de-identification are:
+* The columns/tags with the `SQ` VR are ignored
+* Private tags are ignored
+* Pseudonymization (replace uid) is not implemented
+* Cleaning (e.g. removing sensitive data from free text field) is not implemented
+
 ## Development
 
 ### Development shell
