@@ -24,6 +24,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import scala.util.Success
 import scala.util.Try
 import scala.xml.XML
 
@@ -85,7 +86,7 @@ object DicomDeidentifyDictionary {
               .replace(",", ""),
             16
           )
-        ).toOption.map(intTag =>
+        ).map(intTag =>
           DicomDeidElem(
             tag = intTag,
             name = rowCellTexts(0),
@@ -105,7 +106,7 @@ object DicomDeidentifyDictionary {
           )
         )
       })
-      .collect { case Some(v) if v.name.nonEmpty => v }
+      .collect { case Success(v) if v.name.nonEmpty => v }
       .toArray
   }
 
