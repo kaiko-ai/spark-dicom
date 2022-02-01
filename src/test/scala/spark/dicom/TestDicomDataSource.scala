@@ -236,6 +236,29 @@ class TestDicomDataSource
       )
     }
 
+    it("allows reading whole content when specified explicitly in config") {
+      assert(
+        DicomDataSource
+          .schema(withContent = true)
+          .fields
+          .find(_.name == "content")
+          .isDefined
+      )
+      assert(
+        spark.read
+          .format("dicomFile")
+          .option(DicomDataSource.OPTION_WITHCONTENT, true)
+          .load(SOME_DICOM_FILEPATH)
+          .select(
+            col("path"),
+            col("content")
+          )
+          .first
+          .getAs[Array[Byte]]("content")
+          .size > 0
+      )
+    }
+
     it("reads a stream of DICOM files") {
       val df = spark.readStream
         .schema(DicomDataSource.schema(false))
