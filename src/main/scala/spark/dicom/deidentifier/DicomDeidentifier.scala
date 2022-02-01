@@ -39,7 +39,7 @@ case class DicomDeidentifierConfig(
 )
 object DicomDeidentifier {
 
-  /** Gets the correct action according to the deidElem, vr, and confih
+  /** Gets the correct action according to the deidElem, vr, and config
     *
     * @param deidElem
     *   entry in the table from the DICOM standard that specifies elements to
