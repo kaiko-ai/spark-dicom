@@ -7,7 +7,7 @@ inThisBuild(
     semanticdbVersion := scalafixSemanticdb.revision, // only required for Scala 2.x
     scalacOptions += "-Ywarn-unused-import", // Scala 2.x only, required by `RemoveUnused`
     scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.6.0",
-    versionScheme := Some("early-semver"),
+    versionScheme := Some("early-semver")
   )
 )
 idePackagePrefix := Some("ai.kaiko")
@@ -25,6 +25,9 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.10" % "test"
 libraryDependencies += "org.dcm4che" % "dcm4che-core" % "5.24.2"
 libraryDependencies += "org.dcm4che" % "dcm4che-imageio" % "5.24.2"
 
+// needed to allow separate test classes to run in their own SparkSession
+Test / parallelExecution := false
+
 // assembly / mainClass := Some("ai.kaiko.dicom.app.Main")
 ThisBuild / organization := "ai.kaiko"
 ThisBuild / organizationName := "Kaiko"
@@ -39,13 +42,30 @@ ThisBuild / scmInfo := Some(
 )
 
 ThisBuild / developers := List(
-  Developer(id="marijncv", name="Marijn Valk", email="marijncv@hotmail", url=url("https://github.com/marijncv")),
-  Developer(id="GuillaumeDesforges", name="Guillaume Desforges", email="guillaume.desforges.pro@gmail.com", url=url("https://github.com/GuillaumeDesforges")),
-  Developer(id="robopoc", name="Robert Berke", email="berke.robert@gmail.com", url=url("https://github.com/robopoc")),
+  Developer(
+    id = "marijncv",
+    name = "Marijn Valk",
+    email = "marijncv@hotmail",
+    url = url("https://github.com/marijncv")
+  ),
+  Developer(
+    id = "GuillaumeDesforges",
+    name = "Guillaume Desforges",
+    email = "guillaume.desforges.pro@gmail.com",
+    url = url("https://github.com/GuillaumeDesforges")
+  ),
+  Developer(
+    id = "robopoc",
+    name = "Robert Berke",
+    email = "berke.robert@gmail.com",
+    url = url("https://github.com/robopoc")
+  )
 )
 
 ThisBuild / description := "Spark DICOM connector in Scala"
-ThisBuild / licenses := List("Apache 2" -> new URL("http://www.apache.org/licenses/LICENSE-2.0.txt"))
+ThisBuild / licenses := List(
+  "Apache 2" -> new URL("http://www.apache.org/licenses/LICENSE-2.0.txt")
+)
 ThisBuild / homepage := Some(url("https://github.com/kaiko-ai/spark-dicom"))
 
 // Remove all additional repository other than Maven Central from POM

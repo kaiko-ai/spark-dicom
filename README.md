@@ -40,6 +40,43 @@ spark.read.format("dicomFile").option("includePixelData", true).load("/some/hdfs
 
 - `isDicom`: `true` if file was read as a DICOM file, `false` otherwise
 
+
+## De-identification
+
+The DICOM dataframe can be de-identified according to the Basic Confidentiality Profile in the [DICOM standard](https://dicom.nema.org/medical/dicom/current/output/html/part15.html#chapter_E). To use the de-identifier, do the following in scala:
+
+```scala
+import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
+
+var df = spark.read.format("dicomFile").load("/some/hdfs/path")
+df = deidentify(df)
+```
+
+The resulting dataframe will have all the columns dropped/emptied/dummyfied according to the actions described [here](https://dicom.nema.org/medical/dicom/current/output/html/part15.html#table_E.1-1).
+
+To perform the de-identification with any of the options described in the table, use:
+
+```scala
+import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
+import ai.kaiko.spark.dicom.deidentifier.options._
+
+val config: Map[DeidOption, Boolean] = Map(
+  CleanDesc -> true,
+  RetainUids -> true
+)
+
+var df = spark.read.format("dicomFile").load("/some/hdfs/path")
+df = deidentify(df, config)
+```
+
+Current limitations of the de-identification are:
+| Expected behavior                            | Current behavior                                         |
+| -------------------------------------------- | -------------------------------------------------------- |
+| Tags with `SQ` VR are de-identified          | Tags with `SQ` VR are ignored                            |
+| Private tags are de-identified               | Private tags are ignored                                 |
+| The `U` action pseudonimizes the value       | The `U` action replaces the value with `ToPseudonimize`  |
+| The `C` action cleans the value of PHI/PII   | The `C` action replaces the value with `ToClean`         |
+
 ## Development
 
 ### Development shell

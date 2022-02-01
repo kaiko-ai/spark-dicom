@@ -21,13 +21,11 @@ import org.apache.log4j.Level
 import org.apache.log4j.LogManager
 import org.apache.log4j.Priority
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.streaming.Trigger
 import org.dcm4che3.data.Keyword.{valueOf => keywordOf}
 import org.dcm4che3.data._
 import org.dcm4che3.io.DicomOutputStream
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.CancelAfterFailure
 import org.scalatest.funspec.AnyFunSpec
 
@@ -35,6 +33,10 @@ import java.io.File
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+
+import org.apache.spark.sql.SparkSession
+import org.apache.log4j.Level
+import org.scalatest.BeforeAndAfterAll
 
 trait WithSpark {
   var spark = {
@@ -65,9 +67,9 @@ object TestDicomDataSource {
 
 class TestDicomDataSource
     extends AnyFunSpec
-    with WithSpark
     with BeforeAndAfterAll
-    with CancelAfterFailure {
+    with CancelAfterFailure
+    with WithSpark {
   import TestDicomDataSource._
 
   val logger = {
