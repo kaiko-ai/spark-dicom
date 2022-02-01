@@ -20,8 +20,10 @@ import scala.reflect.runtime.{universe => ru}
 sealed abstract class DeidOption(val priority: Int)
 case object DeidOption {
   val mirror =
-    ru.runtimeMirror(getClass.getClassLoader) // current class classloader
+    ru.runtimeMirror(getClass.getClassLoader)
 
+  // Note: Symbol class will be deprecated in scala 3 
+  // http://dotty.epfl.ch/docs/reference/dropped-features/symlits.html
   lazy val values: List[DeidOption] = ru
     .typeOf[DeidOption]
     .typeSymbol
@@ -36,7 +38,6 @@ case object DeidOption {
     .sortBy(_.priority)
 }
 
-// http://dotty.epfl.ch/docs/reference/dropped-features/symlits.html
 case object CleanGraph extends DeidOption(1)
 case object CleanStructCont extends DeidOption(2)
 case object CleanDesc extends DeidOption(3)
