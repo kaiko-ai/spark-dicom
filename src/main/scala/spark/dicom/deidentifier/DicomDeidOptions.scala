@@ -22,7 +22,7 @@ case object DeidOption {
   val mirror =
     ru.runtimeMirror(getClass.getClassLoader)
 
-  // Note: Symbol class will be deprecated in scala 3 
+  // Note: Symbol class will be deprecated in scala 3
   // http://dotty.epfl.ch/docs/reference/dropped-features/symlits.html
   lazy val values: List[DeidOption] = ru
     .typeOf[DeidOption]

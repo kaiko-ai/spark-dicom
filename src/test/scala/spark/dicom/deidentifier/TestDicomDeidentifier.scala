@@ -36,6 +36,7 @@ import java.io.File
 import org.apache.spark.sql.SparkSession
 import org.apache.log4j.Level
 import org.scalatest.BeforeAndAfterAll
+import ai.kaiko.spark.dicom.deidentifier.options._
 
 trait WithSpark {
   var spark = {
@@ -130,9 +131,7 @@ class TestDicomDeidentifier
         .format("dicomFile")
         .load(SOME_DICOM_FILEPATH)
 
-      val config = DicomDeidentifierConfig(
-        cleanDesc = true
-      )
+      val config: Map[DeidOption, Boolean] = Map(CleanDesc -> true)
 
       df = deidentify(df, config)
 
@@ -157,7 +156,7 @@ class TestDicomDeidentifier
         DicomDeidentifier.getAction(
           deidElem,
           VR.ST,
-          DicomDeidentifierConfig()
+          Map.empty
         ) === Drop()
       )
     }
@@ -169,7 +168,7 @@ class TestDicomDeidentifier
         action = "X",
         retainUidsAction = Some("D")
       )
-      val config = DicomDeidentifierConfig(retainUids = true)
+      val config: Map[DeidOption, Boolean] = Map(RetainUids -> true)
       assert(
         DicomDeidentifier.getAction(deidElem, VR.LO, config) === Dummify(
           Some(DUMMY_STRING)
@@ -185,8 +184,8 @@ class TestDicomDeidentifier
         retainUidsAction = Some("D"),
         retainDevIdAction = Some("Z")
       )
-      val config =
-        DicomDeidentifierConfig(retainUids = true, retainDevId = true)
+      val config: Map[DeidOption, Boolean] =
+        Map(RetainUids -> true, RetainDevId -> true)
       assert(
         DicomDeidentifier.getAction(deidElem, VR.LO, config) === Empty(
           Some(EMPTY_STRING)
@@ -204,11 +203,11 @@ class TestDicomDeidentifier
         retainUidsAction = Some("D"),
         retainDevIdAction = Some("Z")
       )
-      val config = DicomDeidentifierConfig(
-        retainUids = true,
-        retainDevId = true,
-        retainLongFullDates = true,
-        retainLongModifDates = true
+      val config: Map[DeidOption, Boolean] = Map(
+        RetainUids -> true,
+        RetainDevId -> true,
+        RetainLongFullDates -> true,
+        RetainLongModifDates -> true
       )
       assert(
         DicomDeidentifier.getAction(deidElem, VR.LO, config) === Empty(

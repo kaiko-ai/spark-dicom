@@ -26,17 +26,6 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.dcm4che3.data._
 
-case class DicomDeidentifierConfig(
-    retainUids: Boolean = false,
-    retainDevId: Boolean = false,
-    retainInstId: Boolean = false,
-    retainPatChars: Boolean = false,
-    retainLongFullDates: Boolean = false,
-    retainLongModifDates: Boolean = false,
-    cleanDesc: Boolean = false,
-    cleanStructCont: Boolean = false,
-    cleanGraph: Boolean = false
-)
 object DicomDeidentifier {
 
   /** Gets the correct action according to the deidElem, vr, and config
@@ -53,32 +42,29 @@ object DicomDeidentifier {
   def getAction(
       deidElem: DicomDeidElem,
       vr: VR,
-      config: DicomDeidentifierConfig
+      config: Map[DeidOption, Boolean]
   ): DeidAction = {
 
     DeidOption.values
       .map({ deidOpt =>
-        val (configSetting, action) = deidOpt match {
-          case CleanGraph => (config.cleanGraph, deidElem.cleanGraphAction)
-          case CleanStructCont =>
-            (config.cleanStructCont, deidElem.cleanStructContAction)
-          case CleanDesc => (config.cleanDesc, deidElem.cleanDescAction)
-          case RetainLongModifDates =>
-            (config.retainLongModifDates, deidElem.retainLongModifDatesAction)
-          case RetainLongFullDates =>
-            (config.retainLongFullDates, deidElem.retainLongFullDatesAction)
-          case RetainPatChars =>
-            (config.retainPatChars, deidElem.retainPatCharsAction)
-          case RetainInstId =>
-            (config.retainInstId, deidElem.retainInstIdAction)
-          case RetainDevId => (config.retainDevId, deidElem.retainDevIdAction)
-          case RetainUids  => (config.retainUids, deidElem.retainUidsAction)
+        lazy val action = deidOpt match {
+          case CleanGraph           => deidElem.cleanGraphAction
+          case CleanStructCont      => deidElem.cleanStructContAction
+          case CleanDesc            => deidElem.cleanDescAction
+          case RetainLongModifDates => deidElem.retainLongModifDatesAction
+          case RetainLongFullDates  => deidElem.retainLongFullDatesAction
+          case RetainPatChars       => deidElem.retainPatCharsAction
+          case RetainInstId         => deidElem.retainInstIdAction
+          case RetainDevId          => deidElem.retainDevIdAction
+          case RetainUids           => deidElem.retainUidsAction
         }
-        if (configSetting) action else None
+        if (config.get(deidOpt).getOrElse(false)) action else None
       })
+      // take config option with the highest priority
       .find(_.isDefined)
-      .flatten // take config option with the highest priority
-      .getOrElse(deidElem.action) match { // no config options found. Take default action.
+      .flatten
+      // no config options found. Take default action
+      .getOrElse(deidElem.action) match {
       case "Z" | "Z/D" => Empty(DicomDeidentifyDictionary.getEmptyValue(vr))
       case "D" | "D/X" => Dummify(DicomDeidentifyDictionary.getDummyValue(vr))
       case "C"         => Clean()
@@ -98,7 +84,7 @@ object DicomDeidentifier {
     */
   def deidentify(
       dataframe: DataFrame,
-      config: DicomDeidentifierConfig = DicomDeidentifierConfig()
+      config: Map[DeidOption, Boolean] = Map.empty
   ): DataFrame = {
     val columns = dataframe.columns
       .map(keyword => {
