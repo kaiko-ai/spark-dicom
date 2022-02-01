@@ -130,11 +130,11 @@ class TestDicomDeidentifier
         .format("dicomFile")
         .load(SOME_DICOM_FILEPATH)
 
-      val options = DicomDeidentifierOptions(
+      val config = DicomDeidentifierConfig(
         cleanDesc = true
       )
 
-      df = deidentify(df, options)
+      df = deidentify(df, config)
 
       val row = df.first
 
@@ -153,7 +153,13 @@ class TestDicomDeidentifier
         action = "X",
         retainUidsAction = Some("D")
       )
-      assert(DicomDeidentifierOptions().getAction(deidElem) === Drop())
+      assert(
+        DicomDeidentifier.getAction(
+          deidElem,
+          VR.ST,
+          DicomDeidentifierConfig()
+        ) === Drop()
+      )
     }
     it("getAction returns correct action when option is given") {
       val deidElem = DicomDeidElem(
@@ -163,8 +169,12 @@ class TestDicomDeidentifier
         action = "X",
         retainUidsAction = Some("D")
       )
-      val options = DicomDeidentifierOptions(retainUids = true)
-      assert(options.getAction(deidElem) === Dummify())
+      val config = DicomDeidentifierConfig(retainUids = true)
+      assert(
+        DicomDeidentifier.getAction(deidElem, VR.LO, config) === Dummify(
+          Some(DUMMY_STRING)
+        )
+      )
     }
     it("getAction returns correct action when multiple options are given") {
       val deidElem = DicomDeidElem(
@@ -175,9 +185,13 @@ class TestDicomDeidentifier
         retainUidsAction = Some("D"),
         retainDevIdAction = Some("Z")
       )
-      val options =
-        DicomDeidentifierOptions(retainUids = true, retainDevId = true)
-      assert(options.getAction(deidElem) === Empty())
+      val config =
+        DicomDeidentifierConfig(retainUids = true, retainDevId = true)
+      assert(
+        DicomDeidentifier.getAction(deidElem, VR.LO, config) === Empty(
+          Some(EMPTY_STRING)
+        )
+      )
     }
     it(
       "getAction returns correct action when multiple (irrelevant) options are given"
@@ -190,13 +204,17 @@ class TestDicomDeidentifier
         retainUidsAction = Some("D"),
         retainDevIdAction = Some("Z")
       )
-      val options = DicomDeidentifierOptions(
+      val config = DicomDeidentifierConfig(
         retainUids = true,
         retainDevId = true,
         retainLongFullDates = true,
         retainLongModifDates = true
       )
-      assert(options.getAction(deidElem) === Empty())
+      assert(
+        DicomDeidentifier.getAction(deidElem, VR.LO, config) === Empty(
+          Some(EMPTY_STRING)
+        )
+      )
     }
   }
 }

@@ -16,35 +16,35 @@
 // under the License.
 package ai.kaiko.spark.dicom.deidentifier
 
-import ai.kaiko.dicom.DicomDeidentifyDictionary
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.functions._
-import org.dcm4che3.data._
 
 sealed trait DeidAction {
-  def deidentify(keyword: String, vr: VR): Option[Column]
+  def makeDeidentifiedColumn(keyword: String): Option[Column]
 }
-sealed case class Empty() extends DeidAction {
-  def deidentify(keyword: String, vr: VR): Option[Column] =
-    DicomDeidentifyDictionary.getEmptyValue(vr).map(lit(_).as(keyword))
+sealed case class Empty(emptyValue: Option[Any]) extends DeidAction {
+  def makeDeidentifiedColumn(keyword: String): Option[Column] =
+    emptyValue.map(lit(_).as(keyword))
 }
-sealed case class Dummify() extends DeidAction {
-  def deidentify(keyword: String, vr: VR): Option[Column] =
-    DicomDeidentifyDictionary.getDummyValue(vr).map(lit(_).as(keyword))
+sealed case class Dummify(dummyValue: Option[Any]) extends DeidAction {
+  def makeDeidentifiedColumn(keyword: String): Option[Column] =
+    dummyValue.map(lit(_).as(keyword))
 }
 sealed case class Clean() extends DeidAction {
-  def deidentify(keyword: String, vr: VR): Option[Column] = Some(
+  def makeDeidentifiedColumn(keyword: String): Option[Column] = Some(
     lit("ToClean").as(keyword)
   )
 }
 sealed case class Pseudonymize() extends DeidAction {
-  def deidentify(keyword: String, vr: VR): Option[Column] = Some(
+  def makeDeidentifiedColumn(keyword: String): Option[Column] = Some(
     lit("ToPseudonymize").as(keyword)
   )
 }
 sealed case class Drop() extends DeidAction {
-  def deidentify(keyword: String, vr: VR): Option[Column] = None
+  def makeDeidentifiedColumn(keyword: String): Option[Column] = None
 }
 sealed case class Keep() extends DeidAction {
-  def deidentify(keyword: String, vr: VR): Option[Column] = Some(col(keyword))
+  def makeDeidentifiedColumn(keyword: String): Option[Column] = Some(
+    col(keyword)
+  )
 }
