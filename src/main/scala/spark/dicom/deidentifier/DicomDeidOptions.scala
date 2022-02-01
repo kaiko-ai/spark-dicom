@@ -17,6 +17,8 @@
 package ai.kaiko.spark.dicom.deidentifier.options
 import scala.reflect.runtime.{universe => ru}
 
+// priority decides which action to take when multiple options apply
+// prio 1 gets picked first, then 2, etc.
 sealed abstract class DeidOption(val priority: Int)
 case object DeidOption {
   val mirror =

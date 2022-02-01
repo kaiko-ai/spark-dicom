@@ -33,6 +33,7 @@ case class DicomDeidElem(
     name: String,
     keyword: String,
     action: String,
+    // todo: create Enum and use instead of Option[String]
     retainUidsAction: Option[String] = None,
     retainDevIdAction: Option[String] = None,
     retainInstIdAction: Option[String] = None,
@@ -92,6 +93,7 @@ object DicomDeidentifyDictionary {
             name = rowCellTexts(0),
             keyword = Keyword.valueOf(intTag),
             action = rowCellTexts(4),
+            // todo: create Enum and use instead of Option[String]
             retainUidsAction = Option(rowCellTexts(6)).filter(_.nonEmpty),
             retainDevIdAction = Option(rowCellTexts(7)).filter(_.nonEmpty),
             retainInstIdAction = Option(rowCellTexts(8)).filter(_.nonEmpty),

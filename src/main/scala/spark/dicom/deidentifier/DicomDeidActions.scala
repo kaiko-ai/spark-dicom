@@ -19,6 +19,7 @@ package ai.kaiko.spark.dicom.deidentifier
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.functions._
 
+// todo: use case objects here instead of case classes?
 sealed trait DeidAction {
   def makeDeidentifiedColumn(keyword: String): Option[Column]
 }

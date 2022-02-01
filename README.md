@@ -58,11 +58,11 @@ To perform the de-identification with any of the options described in the table,
 
 ```scala
 import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
-import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifierConfiguration
+import ai.kaiko.spark.dicom.deidentifier.options._
 
-val config = DicomDeidentifierConfiguration(
-  cleanDesc = true,
-  retainUids = true
+val config: Map[DeidOption, Boolean] = Map(
+  CleanDesc -> true,
+  RetainUids -> true
 )
 
 var df = spark.read.format("dicomFile").load("/some/hdfs/path")
