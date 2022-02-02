@@ -28,21 +28,26 @@ import scala.util.Success
 import scala.util.Try
 import scala.xml.XML
 
+object ActionCode extends Enumeration {
+  type ActionCode = Value
+
+  val D, Z, X, K, C, U = Value
+}
+
 case class DicomDeidElem(
     tag: Int,
     name: String,
     keyword: String,
-    action: String,
-    // todo: create Enum and use instead of Option[String]
-    retainUidsAction: Option[String] = None,
-    retainDevIdAction: Option[String] = None,
-    retainInstIdAction: Option[String] = None,
-    retainPatCharsAction: Option[String] = None,
-    retainLongFullDatesAction: Option[String] = None,
-    retainLongModifDatesAction: Option[String] = None,
-    cleanDescAction: Option[String] = None,
-    cleanStructContAction: Option[String] = None,
-    cleanGraphAction: Option[String] = None
+    action: ActionCode.Value,
+    retainUidsAction: Option[ActionCode.Value] = None,
+    retainDevIdAction: Option[ActionCode.Value] = None,
+    retainInstIdAction: Option[ActionCode.Value] = None,
+    retainPatCharsAction: Option[ActionCode.Value] = None,
+    retainLongFullDatesAction: Option[ActionCode.Value] = None,
+    retainLongModifDatesAction: Option[ActionCode.Value] = None,
+    cleanDescAction: Option[ActionCode.Value] = None,
+    cleanStructContAction: Option[ActionCode.Value] = None,
+    cleanGraphAction: Option[ActionCode.Value] = None
 )
 
 object DicomDeidentifyDictionary {
@@ -92,19 +97,16 @@ object DicomDeidentifyDictionary {
             tag = intTag,
             name = rowCellTexts(0),
             keyword = Keyword.valueOf(intTag),
-            action = rowCellTexts(4),
-            // todo: create Enum and use instead of Option[String]
-            retainUidsAction = Option(rowCellTexts(6)).filter(_.nonEmpty),
-            retainDevIdAction = Option(rowCellTexts(7)).filter(_.nonEmpty),
-            retainInstIdAction = Option(rowCellTexts(8)).filter(_.nonEmpty),
-            retainPatCharsAction = Option(rowCellTexts(9)).filter(_.nonEmpty),
-            retainLongFullDatesAction =
-              Option(rowCellTexts(10)).filter(_.nonEmpty),
-            retainLongModifDatesAction =
-              Option(rowCellTexts(11)).filter(_.nonEmpty),
-            cleanDescAction = Option(rowCellTexts(12)).filter(_.nonEmpty),
-            cleanStructContAction = Option(rowCellTexts(13)).filter(_.nonEmpty),
-            cleanGraphAction = Option(rowCellTexts(14)).filter(_.nonEmpty)
+            action = getActionCode(rowCellTexts(4)).getOrElse(ActionCode.X),
+            retainUidsAction = getActionCode(rowCellTexts(6)),
+            retainDevIdAction = getActionCode(rowCellTexts(7)),
+            retainInstIdAction = getActionCode(rowCellTexts(8)),
+            retainPatCharsAction = getActionCode(rowCellTexts(9)),
+            retainLongFullDatesAction = getActionCode(rowCellTexts(10)),
+            retainLongModifDatesAction = getActionCode(rowCellTexts(11)),
+            cleanDescAction = getActionCode(rowCellTexts(12)),
+            cleanStructContAction = getActionCode(rowCellTexts(13)),
+            cleanGraphAction = getActionCode(rowCellTexts(14))
           )
         )
       })
@@ -117,6 +119,18 @@ object DicomDeidentifyDictionary {
 
   lazy val tagMap: Map[Int, DicomDeidElem] =
     elements.map(deidElem => deidElem.tag -> deidElem).toMap
+
+  def getActionCode(action: String): Option[ActionCode.Value] = {
+    action match {
+      case "Z" | "Z/D"                              => Some(ActionCode.Z)
+      case "D" | "D/X"                              => Some(ActionCode.D)
+      case "C"                                      => Some(ActionCode.C)
+      case "U"                                      => Some(ActionCode.U)
+      case "X" | "X/Z" | "X/D" | "X/Z/D" | "X/Z/U*" => Some(ActionCode.X)
+      case "K"                                      => Some(ActionCode.K)
+      case ""                                       => None
+    }
+  }
 
   def getDummyValue(vr: VR): Option[Any] = {
     vr match {

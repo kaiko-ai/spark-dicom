@@ -16,6 +16,7 @@
 // under the License.
 package ai.kaiko.spark.dicom.deidentifier
 
+import ai.kaiko.dicom.ActionCode
 import ai.kaiko.dicom.DicomDeidElem
 import ai.kaiko.dicom.DicomDeidentifyDictionary
 import ai.kaiko.dicom.DicomStandardDictionary
@@ -65,12 +66,12 @@ object DicomDeidentifier {
       .flatten
       // no config options found. Take default action
       .getOrElse(deidElem.action) match {
-      case "Z" | "Z/D" => Empty(DicomDeidentifyDictionary.getEmptyValue(vr))
-      case "D" | "D/X" => Dummify(DicomDeidentifyDictionary.getDummyValue(vr))
-      case "C"         => Clean()
-      case "U"         => Pseudonymize()
-      case "X" | "X/Z" | "X/D" | "X/Z/D" | "X/Z/U*" => Drop()
-      case "K"                                      => Keep()
+      case ActionCode.Z => Empty(DicomDeidentifyDictionary.getEmptyValue(vr))
+      case ActionCode.D => Dummify(DicomDeidentifyDictionary.getDummyValue(vr))
+      case ActionCode.C => Clean()
+      case ActionCode.U => Pseudonymize()
+      case ActionCode.X => Drop()
+      case ActionCode.K => Keep()
     }
   }
 
