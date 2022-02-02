@@ -35,7 +35,9 @@ jobs:
         with:
           name: kaiko-ai
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
-      - name: Lint
+      - name: Formatting (scalafmt)
+        run: nix-shell --run "scalafmt --test"
+      - name: Lint (scalafix)
         run: nix-shell --run "sbt 'scalafix -r OrganizeImports --check'"
   check-license:
     runs-on: ubuntu-latest
