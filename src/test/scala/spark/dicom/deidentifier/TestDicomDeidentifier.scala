@@ -17,7 +17,6 @@
 package ai.kaiko.spark.dicom.deidentifier
 
 import ai.kaiko.dicom.ActionCode
-import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
 import ai.kaiko.dicom.DicomDeidElem
 import ai.kaiko.dicom.DicomDeidentifyDictionary.{
   DUMMY_DATE,
@@ -26,18 +25,18 @@ import ai.kaiko.dicom.DicomDeidentifyDictionary.{
   EMPTY_STRING,
   DUMMY_STRING
 }
+import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
+import ai.kaiko.spark.dicom.deidentifier.options._
 import org.apache.log4j.Level
 import org.apache.log4j.LogManager
+import org.apache.spark.sql.{SparkSession, Row}
+import org.apache.spark.sql.types.{StructType, StructField, StringType}
 import org.dcm4che3.data.Keyword.{valueOf => keywordOf}
 import org.dcm4che3.data._
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.CancelAfterFailure
 import org.scalatest.funspec.AnyFunSpec
 import java.io.File
-
-import org.apache.spark.sql.SparkSession
-import org.apache.log4j.Level
-import org.scalatest.BeforeAndAfterAll
-import ai.kaiko.spark.dicom.deidentifier.options._
 
 trait WithSpark {
   var spark = {
@@ -156,8 +155,7 @@ class TestDicomDeidentifier
       assert(
         DicomDeidentifier.getAction(
           deidElem,
-          VR.ST,
-          Map.empty
+          VR.ST
         ) === Drop()
       )
     }
@@ -219,6 +217,78 @@ class TestDicomDeidentifier
           Some(EMPTY_STRING)
         )
       )
+    }
+  }
+  describe("DeidActions") {
+    it("Pseudonymize makeDeidentifiedColumn makes a pseudonym of uid value") {
+      val SOME_UID_COLUMN = keywordOf(Tag.ConcatenationUID)
+      val SOME_UID_VAL = "uidValue"
+
+      val data = Seq(Row(SOME_UID_VAL))
+      val schema = StructType(Seq(StructField(SOME_UID_COLUMN, StringType)))
+      var df =
+        spark.createDataFrame(spark.sparkContext.parallelize(data), schema)
+
+      df = deidentify(df)
+
+      val row = df.first
+
+      assert(df.first.getAs[String](SOME_UID_COLUMN) !== SOME_UID_VAL)
+    }
+    it("Pseudonymize makeDeidentifiedColumn does not change empty string") {
+      val SOME_UID_COLUMN = keywordOf(Tag.ConcatenationUID)
+
+      val data = Seq(Row(EMPTY_STRING))
+      val schema = StructType(Seq(StructField(SOME_UID_COLUMN, StringType)))
+      var df =
+        spark.createDataFrame(spark.sparkContext.parallelize(data), schema)
+
+      df = deidentify(df)
+
+      val row = df.first
+
+      assert(df.first.getAs[String](SOME_UID_COLUMN) === EMPTY_STRING)
+    }
+    it(
+      "Pseudonymize makeDeidentifiedColumn is deterministic when salt is given"
+    ) {
+      val SOME_UID_COLUMN = keywordOf(Tag.ConcatenationUID)
+      val SOME_UID_VAL = "uidValue"
+      val SOME_SALT = "aSaltValue"
+
+      val data = Seq(Row(SOME_UID_VAL))
+      val schema = StructType(Seq(StructField(SOME_UID_COLUMN, StringType)))
+      val df =
+        spark.createDataFrame(spark.sparkContext.parallelize(data), schema)
+
+      val firstRun = deidentify(df, salt = SOME_SALT)
+      val firstHash = firstRun.first.getAs[String](SOME_UID_COLUMN)
+
+      val secondRun = deidentify(df, salt = SOME_SALT)
+      val secondHash = secondRun.first.getAs[String](SOME_UID_COLUMN)
+
+      assert(firstHash === secondHash)
+    }
+    it(
+      "Pseudonymize makeDeidentifiedColumn results differ with different salt"
+    ) {
+      val SOME_UID_COLUMN = keywordOf(Tag.ConcatenationUID)
+      val SOME_UID_VAL = "uidValue"
+      val FIRST_SALT = "aFirstSaltValue"
+      val SECOND_SALT = "aSecondSaltValue"
+
+      val data = Seq(Row(SOME_UID_VAL))
+      val schema = StructType(Seq(StructField(SOME_UID_COLUMN, StringType)))
+      val df =
+        spark.createDataFrame(spark.sparkContext.parallelize(data), schema)
+
+      val firstRun = deidentify(df, salt = FIRST_SALT)
+      val firstHash = firstRun.first.getAs[String](SOME_UID_COLUMN)
+
+      val secondRun = deidentify(df, salt = SECOND_SALT)
+      val secondHash = secondRun.first.getAs[String](SOME_UID_COLUMN)
+
+      assert(firstHash !== secondHash)
     }
   }
 }

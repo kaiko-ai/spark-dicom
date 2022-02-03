@@ -29,7 +29,7 @@ import org.dcm4che3.data._
 
 object DicomDeidentifier {
 
-  /** Gets the correct action according to the deidElem, vr, and config
+  /** Gets the correct action according to the deidElem, vr and config
     *
     * @param deidElem
     *   entry in the table from the DICOM standard that specifies elements to
@@ -39,11 +39,14 @@ object DicomDeidentifier {
     *   value represenation of the deidElem
     * @param config
     *   configuration settings to be used in de-identification
+    * @param salt
+    *   salt to use in the pseudonumization action
     */
   def getAction(
       deidElem: DicomDeidElem,
       vr: VR,
-      config: Map[DeidOption, Boolean]
+      config: Map[DeidOption, Boolean] = Map.empty,
+      salt: String = scala.util.Random.alphanumeric take 20 mkString
   ): DeidAction = {
 
     DeidOption.values
@@ -59,7 +62,7 @@ object DicomDeidentifier {
       case ActionCode.Z => Empty(DicomDeidentifyDictionary.getEmptyValue(vr))
       case ActionCode.D => Dummify(DicomDeidentifyDictionary.getDummyValue(vr))
       case ActionCode.C => Clean()
-      case ActionCode.U => Pseudonymize()
+      case ActionCode.U => Pseudonymize(salt)
       case ActionCode.X => Drop()
       case ActionCode.K => Keep()
     }
@@ -72,10 +75,13 @@ object DicomDeidentifier {
     *   columns need to be keywords as defined in the DICOM standard
     * @param config
     *   configuration settings to be used in de-identification
+    * @param salt
+    *   salt to use in the pseudonumization action
     */
   def deidentify(
       dataframe: DataFrame,
-      config: Map[DeidOption, Boolean] = Map.empty
+      config: Map[DeidOption, Boolean] = Map.empty,
+      salt: String = scala.util.Random.alphanumeric take 20 mkString
   ): DataFrame = {
     val columns = dataframe.columns
       .map(keyword => {
@@ -89,7 +95,7 @@ object DicomDeidentifier {
               Some(DicomStdElem(_, _, _, Right(vr), _, _)),
               Some(deidElem)
             ) =>
-          getAction(deidElem, vr, config).makeDeidentifiedColumn(keyword)
+          getAction(deidElem, vr, config, salt).makeDeidentifiedColumn(keyword)
         case (keyword, _, _) => Some(col(keyword))
       })
       .collect({ case Some(column) =>
