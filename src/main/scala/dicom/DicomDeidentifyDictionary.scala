@@ -41,7 +41,7 @@ case class DicomDeidElem(
     tag: Int,
     name: String,
     keyword: String,
-    action: ActionCode.ActionCode,
+    action: ActionCode,
     deidOptionToAction: Map[DeidOption, ActionCode]
 )
 
