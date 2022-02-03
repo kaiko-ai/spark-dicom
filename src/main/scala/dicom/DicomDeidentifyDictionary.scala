@@ -95,12 +95,14 @@ object DicomDeidentifyDictionary {
             action = getActionCode(rowCellTexts(4)).getOrElse(ActionCode.X),
             deidOptionToAction = DeidOption.values
               .zip(
+                // we are taking the column indices in reverse order
+                // to match ordering of DeidOptions based on priority
                 Range(14, 5, -1).map(colIdx =>
                   getActionCode(rowCellTexts(colIdx))
                 )
               )
               .collect({ case (option, Some(actionCode)) =>
-                (option, actionCode)
+                option -> actionCode
               })
               .toMap
           )
