@@ -16,6 +16,7 @@
 // under the License.
 package ai.kaiko.spark.dicom.deidentifier
 
+import ai.kaiko.dicom.ActionCode
 import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
 import ai.kaiko.dicom.DicomDeidElem
 import ai.kaiko.dicom.DicomDeidentifyDictionary.{
@@ -149,8 +150,8 @@ class TestDicomDeidentifier
         tag = 0,
         name = "test",
         keyword = "test",
-        action = "X",
-        retainUidsAction = Some("D")
+        action = ActionCode.X,
+        deidOptionToAction = Map(RetainUids -> ActionCode.D)
       )
       assert(
         DicomDeidentifier.getAction(
@@ -165,8 +166,8 @@ class TestDicomDeidentifier
         tag = 0,
         name = "test",
         keyword = "test",
-        action = "X",
-        retainUidsAction = Some("D")
+        action = ActionCode.X,
+        deidOptionToAction = Map(RetainUids -> ActionCode.D)
       )
       val config: Map[DeidOption, Boolean] = Map(RetainUids -> true)
       assert(
@@ -180,9 +181,11 @@ class TestDicomDeidentifier
         tag = 0,
         name = "test",
         keyword = "test",
-        action = "X",
-        retainUidsAction = Some("D"),
-        retainDevIdAction = Some("Z")
+        action = ActionCode.X,
+        deidOptionToAction = Map(
+          RetainUids -> ActionCode.D,
+          RetainDevId -> ActionCode.Z
+        )
       )
       val config: Map[DeidOption, Boolean] =
         Map(RetainUids -> true, RetainDevId -> true)
@@ -199,9 +202,11 @@ class TestDicomDeidentifier
         tag = 0,
         name = "test",
         keyword = "test",
-        action = "X",
-        retainUidsAction = Some("D"),
-        retainDevIdAction = Some("Z")
+        action = ActionCode.X,
+        deidOptionToAction = Map(
+          RetainUids -> ActionCode.D,
+          RetainDevId -> ActionCode.Z
+        )
       )
       val config: Map[DeidOption, Boolean] = Map(
         RetainUids -> true,

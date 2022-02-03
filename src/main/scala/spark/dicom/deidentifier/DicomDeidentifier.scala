@@ -16,6 +16,7 @@
 // under the License.
 package ai.kaiko.spark.dicom.deidentifier
 
+import ai.kaiko.dicom.ActionCode
 import ai.kaiko.dicom.DicomDeidElem
 import ai.kaiko.dicom.DicomDeidentifyDictionary
 import ai.kaiko.dicom.DicomStandardDictionary
@@ -47,17 +48,7 @@ object DicomDeidentifier {
 
     DeidOption.values
       .map({ deidOpt =>
-        lazy val action = deidOpt match {
-          case CleanGraph           => deidElem.cleanGraphAction
-          case CleanStructCont      => deidElem.cleanStructContAction
-          case CleanDesc            => deidElem.cleanDescAction
-          case RetainLongModifDates => deidElem.retainLongModifDatesAction
-          case RetainLongFullDates  => deidElem.retainLongFullDatesAction
-          case RetainPatChars       => deidElem.retainPatCharsAction
-          case RetainInstId         => deidElem.retainInstIdAction
-          case RetainDevId          => deidElem.retainDevIdAction
-          case RetainUids           => deidElem.retainUidsAction
-        }
+        val action = deidElem.deidOptionToAction.get(deidOpt)
         if (config.get(deidOpt).getOrElse(false)) action else None
       })
       // take config option with the highest priority
@@ -65,12 +56,12 @@ object DicomDeidentifier {
       .flatten
       // no config options found. Take default action
       .getOrElse(deidElem.action) match {
-      case "Z" | "Z/D" => Empty(DicomDeidentifyDictionary.getEmptyValue(vr))
-      case "D" | "D/X" => Dummify(DicomDeidentifyDictionary.getDummyValue(vr))
-      case "C"         => Clean()
-      case "U"         => Pseudonymize()
-      case "X" | "X/Z" | "X/D" | "X/Z/D" | "X/Z/U*" => Drop()
-      case "K"                                      => Keep()
+      case ActionCode.Z => Empty(DicomDeidentifyDictionary.getEmptyValue(vr))
+      case ActionCode.D => Dummify(DicomDeidentifyDictionary.getDummyValue(vr))
+      case ActionCode.C => Clean()
+      case ActionCode.U => Pseudonymize()
+      case ActionCode.X => Drop()
+      case ActionCode.K => Keep()
     }
   }
 

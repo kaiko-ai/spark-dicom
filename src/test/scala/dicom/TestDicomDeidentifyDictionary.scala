@@ -34,7 +34,7 @@ class TestDicomDeidentifyDictionary extends AnyFunSpec {
     }
     it("loads action") {
       val fstElem = DicomDeidentifyDictionary.elements(0)
-      assert(fstElem.action === "Z")
+      assert(fstElem.action === ActionCode.Z)
     }
     it("loads name") {
       val fstElem = DicomDeidentifyDictionary.elements(0)
