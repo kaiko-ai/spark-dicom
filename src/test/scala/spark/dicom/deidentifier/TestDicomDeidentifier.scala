@@ -151,7 +151,7 @@ class TestDicomDeidentifier
         name = "test",
         keyword = "test",
         action = ActionCode.X,
-        retainUidsAction = Some(ActionCode.D)
+        deidOptionToAction = Map(RetainUids -> ActionCode.D)
       )
       assert(
         DicomDeidentifier.getAction(
@@ -167,7 +167,7 @@ class TestDicomDeidentifier
         name = "test",
         keyword = "test",
         action = ActionCode.X,
-        retainUidsAction = Some(ActionCode.D)
+        deidOptionToAction = Map(RetainUids -> ActionCode.D)
       )
       val config: Map[DeidOption, Boolean] = Map(RetainUids -> true)
       assert(
@@ -182,8 +182,10 @@ class TestDicomDeidentifier
         name = "test",
         keyword = "test",
         action = ActionCode.X,
-        retainUidsAction = Some(ActionCode.D),
-        retainDevIdAction = Some(ActionCode.Z)
+        deidOptionToAction = Map(
+          RetainUids -> ActionCode.D,
+          RetainDevId -> ActionCode.Z
+        )
       )
       val config: Map[DeidOption, Boolean] =
         Map(RetainUids -> true, RetainDevId -> true)
@@ -201,8 +203,10 @@ class TestDicomDeidentifier
         name = "test",
         keyword = "test",
         action = ActionCode.X,
-        retainUidsAction = Some(ActionCode.D),
-        retainDevIdAction = Some(ActionCode.Z)
+        deidOptionToAction = Map(
+          RetainUids -> ActionCode.D,
+          RetainDevId -> ActionCode.Z
+        )
       )
       val config: Map[DeidOption, Boolean] = Map(
         RetainUids -> true,

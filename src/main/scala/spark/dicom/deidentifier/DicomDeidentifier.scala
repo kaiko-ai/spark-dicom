@@ -48,17 +48,7 @@ object DicomDeidentifier {
 
     DeidOption.values
       .map({ deidOpt =>
-        lazy val action = deidOpt match {
-          case CleanGraph           => deidElem.cleanGraphAction
-          case CleanStructCont      => deidElem.cleanStructContAction
-          case CleanDesc            => deidElem.cleanDescAction
-          case RetainLongModifDates => deidElem.retainLongModifDatesAction
-          case RetainLongFullDates  => deidElem.retainLongFullDatesAction
-          case RetainPatChars       => deidElem.retainPatCharsAction
-          case RetainInstId         => deidElem.retainInstIdAction
-          case RetainDevId          => deidElem.retainDevIdAction
-          case RetainUids           => deidElem.retainUidsAction
-        }
+        val action = deidElem.deidOptionToAction.get(deidOpt)
         if (config.get(deidOpt).getOrElse(false)) action else None
       })
       // take config option with the highest priority

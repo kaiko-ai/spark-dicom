@@ -16,6 +16,7 @@
 // under the License.
 package ai.kaiko.dicom
 
+import ai.kaiko.spark.dicom.deidentifier.options._
 import org.dcm4che3.data.Keyword
 import org.dcm4che3.data.VR
 import org.dcm4che3.data.VR._
@@ -28,6 +29,8 @@ import scala.util.Success
 import scala.util.Try
 import scala.xml.XML
 
+import ActionCode.ActionCode
+
 object ActionCode extends Enumeration {
   type ActionCode = Value
 
@@ -38,16 +41,8 @@ case class DicomDeidElem(
     tag: Int,
     name: String,
     keyword: String,
-    action: ActionCode.Value,
-    retainUidsAction: Option[ActionCode.Value] = None,
-    retainDevIdAction: Option[ActionCode.Value] = None,
-    retainInstIdAction: Option[ActionCode.Value] = None,
-    retainPatCharsAction: Option[ActionCode.Value] = None,
-    retainLongFullDatesAction: Option[ActionCode.Value] = None,
-    retainLongModifDatesAction: Option[ActionCode.Value] = None,
-    cleanDescAction: Option[ActionCode.Value] = None,
-    cleanStructContAction: Option[ActionCode.Value] = None,
-    cleanGraphAction: Option[ActionCode.Value] = None
+    action: ActionCode.ActionCode,
+    deidOptionToAction: Map[DeidOption, ActionCode]
 )
 
 object DicomDeidentifyDictionary {
@@ -98,15 +93,16 @@ object DicomDeidentifyDictionary {
             name = rowCellTexts(0),
             keyword = Keyword.valueOf(intTag),
             action = getActionCode(rowCellTexts(4)).getOrElse(ActionCode.X),
-            retainUidsAction = getActionCode(rowCellTexts(6)),
-            retainDevIdAction = getActionCode(rowCellTexts(7)),
-            retainInstIdAction = getActionCode(rowCellTexts(8)),
-            retainPatCharsAction = getActionCode(rowCellTexts(9)),
-            retainLongFullDatesAction = getActionCode(rowCellTexts(10)),
-            retainLongModifDatesAction = getActionCode(rowCellTexts(11)),
-            cleanDescAction = getActionCode(rowCellTexts(12)),
-            cleanStructContAction = getActionCode(rowCellTexts(13)),
-            cleanGraphAction = getActionCode(rowCellTexts(14))
+            deidOptionToAction = DeidOption.values
+              .zip(
+                Range(14, 5, -1).map(colIdx =>
+                  getActionCode(rowCellTexts(colIdx))
+                )
+              )
+              .collect({ case (option, Some(actionCode)) =>
+                (option, actionCode)
+              })
+              .toMap
           )
         )
       })
