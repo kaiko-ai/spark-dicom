@@ -17,7 +17,7 @@
 package ai.kaiko.spark.dicom
 
 import ai.kaiko.dicom.DicomStandardDictionary
-import dicom.json.DicomJson
+import ai.kaiko.dicom.json.DicomJson
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.fs.Path
 import org.apache.spark.broadcast.Broadcast

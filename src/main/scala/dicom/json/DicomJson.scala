@@ -14,7 +14,7 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-package dicom.json
+package ai.kaiko.dicom.json
 
 import org.dcm4che3.data
 import org.dcm4che3.json.JSONWriter

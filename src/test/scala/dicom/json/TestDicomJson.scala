@@ -16,7 +16,6 @@
 // under the License.
 package ai.kaiko.dicom.json
 
-import dicom.json.DicomJson
 import org.dcm4che3.data.Attributes
 import org.dcm4che3.data.VR
 import org.scalatest.funspec.AnyFunSpec
