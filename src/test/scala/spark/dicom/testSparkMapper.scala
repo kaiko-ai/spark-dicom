@@ -31,7 +31,9 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.logging.Logger
 
-object TestDicomSparkMapper {
+/** Utils for testing the DicomSparkMapper
+  */
+object DicomSparkMapperTestUtils {
   def getSomeTag(vr: VR): Option[Int] = {
     DicomStandardDictionary.elements
       .find(stdElem => stdElem.vr.map(_.equals(vr)).toOption.getOrElse(false))
@@ -120,8 +122,11 @@ object TestDicomSparkMapper {
   }
 }
 
-class TestDicomSparkMapper extends AnyFunSpec {
-  import TestDicomSparkMapper._
+/** Test that was can read values from DICOM and write them to Spark's
+  * InternalRow
+  */
+class TestDicomSparkMapperToInternalRow extends AnyFunSpec {
+  import DicomSparkMapperTestUtils._
 
   describe("DicomSparkMapper") {
     VR.values.foreach { vr =>
@@ -159,8 +164,10 @@ class TestDicomSparkMapper extends AnyFunSpec {
   }
 }
 
-class ExtraTestDicomSparkMapper extends AnyFunSpec {
-  import TestDicomSparkMapper._
+/** Tests for more specific parsing checks
+  */
+class TestDicomSparkMapperParsing extends AnyFunSpec {
+  import DicomSparkMapperTestUtils._
 
   describe("DicomSparkMapper") {
     it("reads TM with 6 digits for nanoseconds") {

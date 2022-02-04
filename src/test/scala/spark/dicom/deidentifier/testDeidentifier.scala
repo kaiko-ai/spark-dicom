@@ -17,35 +17,24 @@
 package ai.kaiko.spark.dicom.deidentifier
 
 import ai.kaiko.dicom.ActionCode
-import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
 import ai.kaiko.dicom.DicomDeidElem
-import ai.kaiko.dicom.DicomDeidentifyDictionary.{
-  DUMMY_DATE,
-  DUMMY_TIME,
-  DUMMY_DATE_TIME,
-  EMPTY_STRING,
-  DUMMY_STRING
-}
+import ai.kaiko.dicom.DicomDeidentifyDictionary.DUMMY_DATE
+import ai.kaiko.dicom.DicomDeidentifyDictionary.DUMMY_DATE_TIME
+import ai.kaiko.dicom.DicomDeidentifyDictionary.DUMMY_STRING
+import ai.kaiko.dicom.DicomDeidentifyDictionary.DUMMY_TIME
+import ai.kaiko.dicom.DicomDeidentifyDictionary.EMPTY_STRING
+import ai.kaiko.spark.dicom.WithSpark
+import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
+import ai.kaiko.spark.dicom.deidentifier.options._
 import org.apache.log4j.Level
 import org.apache.log4j.LogManager
 import org.dcm4che3.data.Keyword.{valueOf => keywordOf}
 import org.dcm4che3.data._
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.CancelAfterFailure
 import org.scalatest.funspec.AnyFunSpec
+
 import java.io.File
-
-import org.apache.spark.sql.SparkSession
-import org.apache.log4j.Level
-import org.scalatest.BeforeAndAfterAll
-import ai.kaiko.spark.dicom.deidentifier.options._
-
-trait WithSpark {
-  var spark = {
-    val spark = SparkSession.builder.master("local").getOrCreate
-    spark.sparkContext.setLogLevel(Level.ERROR.toString())
-    spark
-  }
-}
 
 object TestDicomDeidentifier {
   val SOME_DICOM_FILEPATH =
@@ -68,10 +57,6 @@ class TestDicomDeidentifier
     val logger = LogManager.getLogger(getClass.getName);
     logger.setLevel(Level.DEBUG)
     logger
-  }
-
-  override protected def afterAll(): Unit = {
-    spark.stop
   }
 
   val SOME_DROPPED_COL = keywordOf(Tag.ContainerComponentID)

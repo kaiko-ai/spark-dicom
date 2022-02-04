@@ -23,7 +23,9 @@ libraryDependencies += "org.apache.spark" %% "spark-mllib" % "3.2.0" % "provided
 libraryDependencies += "org.apache.spark" %% "spark-streaming" % "3.2.0" % "provided"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.10" % "test"
 libraryDependencies += "org.dcm4che" % "dcm4che-core" % "5.24.2"
+libraryDependencies += "org.dcm4che" % "dcm4che-json" % "5.24.2"
 libraryDependencies += "org.dcm4che" % "dcm4che-imageio" % "5.24.2"
+libraryDependencies += "javax.json" % "javax.json-api" % "1.1.4"
 
 // needed to allow separate test classes to run in their own SparkSession
 Test / parallelExecution := false

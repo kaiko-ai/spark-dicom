@@ -29,7 +29,6 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
 import scala.collection.JavaConverters._
-import scala.util.Try
 
 case class DicomTable(
     name: String,
@@ -43,15 +42,7 @@ case class DicomTable(
 
   override def inferSchema(files: Seq[FileStatus]): Option[StructType] = {
     val optionsMap = options.asScala.toMap
-    val withPixelData: Boolean = optionsMap
-      .get(DicomDataSource.OPTION_WITHPIXELDATA.toLowerCase)
-      .flatMap(b => Try(b.toBoolean).toOption)
-      .getOrElse(false)
-    val withContent: Boolean = optionsMap
-      .get(DicomDataSource.OPTION_WITHCONTENT.toLowerCase)
-      .flatMap(b => Try(b.toBoolean).toOption)
-      .getOrElse(false)
-    Some(DicomDataSource.schema(withPixelData, withContent))
+    Some(DicomDataSource.schema(optionsMap))
   }
 
   override def newScanBuilder(options: CaseInsensitiveStringMap): ScanBuilder =
