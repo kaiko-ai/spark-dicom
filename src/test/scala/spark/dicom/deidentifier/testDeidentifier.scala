@@ -28,7 +28,7 @@ import ai.kaiko.spark.dicom.deidentifier.DicomDeidentifier._
 import ai.kaiko.spark.dicom.deidentifier.options._
 import org.apache.log4j.Level
 import org.apache.log4j.LogManager
-import org.apache.spark.sql.{SparkSession, Row}
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.{StructType, StructField, StringType}
 import org.dcm4che3.data.Keyword.{valueOf => keywordOf}
 import org.dcm4che3.data._
@@ -143,7 +143,9 @@ class TestDicomDeidentifier
       assert(
         DicomDeidentifier.getAction(
           deidElem,
-          VR.ST
+          VR.ST,
+          Map.empty,
+          ""
         ) === Drop()
       )
     }
@@ -157,7 +159,7 @@ class TestDicomDeidentifier
       )
       val config: Map[DeidOption, Boolean] = Map(RetainUids -> true)
       assert(
-        DicomDeidentifier.getAction(deidElem, VR.LO, config) === Dummify(
+        DicomDeidentifier.getAction(deidElem, VR.LO, config, "") === Dummify(
           Some(DUMMY_STRING)
         )
       )
@@ -176,7 +178,7 @@ class TestDicomDeidentifier
       val config: Map[DeidOption, Boolean] =
         Map(RetainUids -> true, RetainDevId -> true)
       assert(
-        DicomDeidentifier.getAction(deidElem, VR.LO, config) === Empty(
+        DicomDeidentifier.getAction(deidElem, VR.LO, config, "") === Empty(
           Some(EMPTY_STRING)
         )
       )
@@ -201,7 +203,7 @@ class TestDicomDeidentifier
         RetainLongModifDates -> true
       )
       assert(
-        DicomDeidentifier.getAction(deidElem, VR.LO, config) === Empty(
+        DicomDeidentifier.getAction(deidElem, VR.LO, config, "") === Empty(
           Some(EMPTY_STRING)
         )
       )

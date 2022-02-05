@@ -45,8 +45,8 @@ object DicomDeidentifier {
   def getAction(
       deidElem: DicomDeidElem,
       vr: VR,
-      config: Map[DeidOption, Boolean] = Map.empty,
-      salt: String = scala.util.Random.alphanumeric take 20 mkString
+      config: Map[DeidOption, Boolean],
+      salt: String
   ): DeidAction = {
 
     DeidOption.values
@@ -81,7 +81,7 @@ object DicomDeidentifier {
   def deidentify(
       dataframe: DataFrame,
       config: Map[DeidOption, Boolean] = Map.empty,
-      salt: String = scala.util.Random.alphanumeric take 20 mkString
+      salt: String = ""
   ): DataFrame = {
     val columns = dataframe.columns
       .map(keyword => {
