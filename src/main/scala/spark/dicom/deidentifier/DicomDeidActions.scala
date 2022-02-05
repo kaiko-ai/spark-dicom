@@ -36,9 +36,16 @@ sealed case class Clean() extends DeidAction {
     lit("ToClean").as(keyword)
   )
 }
-sealed case class Pseudonymize() extends DeidAction {
+sealed case class Pseudonymize(salt: String) extends DeidAction {
   def makeDeidentifiedColumn(keyword: String): Option[Column] = Some(
-    lit("ToPseudonymize").as(keyword)
+    // Only use the hash function on rows with a value.
+    // We don't want to hash the salt by itself
+    when(
+      (col(keyword).isNull) || (col(keyword) !== ""),
+      sha2(concat(col(keyword), lit(salt)), 256)
+    )
+      .otherwise(lit(""))
+      .as(keyword)
   )
 }
 sealed case class Drop() extends DeidAction {
