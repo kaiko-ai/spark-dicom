@@ -17,8 +17,6 @@
 package ai.kaiko.spark.dicom
 
 import ai.kaiko.spark.dicom.v2.DicomDataSource
-import org.apache.log4j.Level
-import org.apache.log4j.LogManager
 import org.apache.log4j.Priority
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.functions.col
@@ -26,27 +24,15 @@ import org.apache.spark.sql.streaming.Trigger
 import org.dcm4che3.data.Keyword.{valueOf => keywordOf}
 import org.dcm4che3.data._
 import org.dcm4che3.io.DicomOutputStream
-import org.scalatest.CancelAfterFailure
-import org.scalatest.funspec.AnyFunSpec
 
 import java.io.File
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
-import org.apache.spark.sql.SparkSession
-import org.apache.log4j.Level
-import org.scalatest.BeforeAndAfterAll
-
-trait WithSpark {
-  var spark = {
-    val spark = SparkSession.builder.master("local").getOrCreate
-    spark.sparkContext.setLogLevel(Level.ERROR.toString())
-    spark
-  }
-}
-
-object TestDicomDataSource {
+/** Utils for testing the DICOM data source
+  */
+object DicomDataSourceTestUtils {
   val SOME_DICOM_FILEPATH =
     "src/test/resources/Pancreatic-CT-CBCT-SEG/Pancreas-CT-CB_001/07-06-2012-NA-PANCREAS-59677/201.000000-PANCREAS DI iDose 3-97846/1-001.dcm"
   lazy val SOME_DICOM_FILE = {
@@ -65,23 +51,8 @@ object TestDicomDataSource {
   val SOME_NONDICOM_FILEPATH = "src/test/resources/nonDicom/test.txt"
 }
 
-class TestDicomDataSource
-    extends AnyFunSpec
-    with BeforeAndAfterAll
-    with CancelAfterFailure
-    with WithSpark {
-  import TestDicomDataSource._
-
-  val logger = {
-    val logger = LogManager.getLogger(getClass.getName);
-    logger.setLevel(Level.DEBUG)
-    logger
-  }
-
-  override protected def afterAll(): Unit = {
-    spark.stop
-  }
-
+class TestDicomDataSourceBatch extends SparkTest {
+  import DicomDataSourceTestUtils._
   describe("Spark") {
     it("reads DICOM files") {
       val df = spark.read
@@ -167,7 +138,7 @@ class TestDicomDataSource
       val tmpFile =
         Files.createTempFile("spark-dicom-test", "collect-parse-error.dcm")
       val tmpFilePath = tmpFile.toAbsolutePath.toUri.toString
-      logger.log(Priority.INFO, f"Writing attribute file to $tmpFilePath")
+      testLogger.log(Priority.INFO, f"Writing attribute file to $tmpFilePath")
 
       val someTag = Tag.StudyTime
       val someAttrs = {
@@ -216,7 +187,11 @@ class TestDicomDataSource
     it("allows reading PixelData when specified explicitly in config") {
       assert(
         DicomDataSource
-          .schema(withPixelData = true)
+          .schema(
+            includePixelData = true,
+            includePrivateTags = false,
+            includeContent = false
+          )
           .fields
           .find(_.name == keywordOf(Tag.PixelData))
           .isDefined
@@ -224,7 +199,7 @@ class TestDicomDataSource
       assert(
         spark.read
           .format("dicomFile")
-          .option(DicomDataSource.OPTION_WITHPIXELDATA, true)
+          .option(DicomDataSource.OPTION_INCLUDEPIXELDATA, true)
           .load(SOME_DICOM_FILEPATH)
           .select(
             col("path"),
@@ -239,7 +214,11 @@ class TestDicomDataSource
     it("allows reading whole content when specified explicitly in config") {
       assert(
         DicomDataSource
-          .schema(withContent = true)
+          .schema(
+            includePixelData = false,
+            includePrivateTags = false,
+            includeContent = true
+          )
           .fields
           .find(_.name == "content")
           .isDefined
@@ -247,7 +226,7 @@ class TestDicomDataSource
       assert(
         spark.read
           .format("dicomFile")
-          .option(DicomDataSource.OPTION_WITHCONTENT, true)
+          .option(DicomDataSource.OPTION_INCLUDECONTENT, true)
           .load(SOME_DICOM_FILEPATH)
           .select(
             col("path"),
@@ -258,10 +237,82 @@ class TestDicomDataSource
           .size > 0
       )
     }
+  }
+}
 
+class TestDicomDataSourcePrivateTags extends SparkTest {
+  describe("Spark") {
+    it("allows reading private tags when specified explicitly in config") {
+      assert(
+        DicomDataSource
+          .schema(
+            includePixelData = false,
+            includePrivateTags = true,
+            includeContent = false
+          )
+          .fields
+          .find(_.name == "privateTagsJson")
+          .isDefined
+      )
+
+      // make a DICOM file with some private data for test
+      import java.nio.file.Files
+      val tmpFile =
+        Files.createTempFile("spark-dicom-test", "privatetags.dcm")
+      val tmpFilePath = tmpFile.toAbsolutePath.toUri.toString
+      testLogger.log(Priority.INFO, f"Writing attribute file to $tmpFilePath")
+
+      val someMetaAttrs = {
+        val attrs = new Attributes
+        attrs.setValue(Tag.FileMetaInformationGroupLength, VR.UL, 204)
+        attrs.setValue(
+          Tag.FileMetaInformationVersion,
+          VR.OB,
+          Array[Byte](0x0, 0x1)
+        )
+        attrs.setValue(Tag.TransferSyntaxUID, VR.UI, UID.ExplicitVRLittleEndian)
+        attrs
+      }
+      val someAttrs = {
+        val attrs = new Attributes
+        attrs.setString("someCreator", 0x00091000, VR.DA, "20220101")
+        attrs
+      }
+      val dcmOutput = new DicomOutputStream(tmpFile.toFile)
+      dcmOutput.writeDataset(someMetaAttrs, someAttrs)
+      dcmOutput.flush
+
+      val row = spark.read
+        .format("dicomFile")
+        .option(DicomDataSource.OPTION_INCLUDEPRIVATETAGS, true)
+        .load(tmpFile.toAbsolutePath.toUri.toString)
+        .select(
+          col("path"),
+          col("privateTagsJson")
+        )
+        .first
+
+      assert(
+        row
+          .getAs[String]("privateTagsJson")
+          === "{\"00090010\":{\"vr\":\"LO\",\"Value\":[\"someCreator\"]},\"00091000\":{\"vr\":\"DA\",\"Value\":[\"20220101\"]}}"
+      )
+    }
+  }
+}
+
+class TestDicomDataSourceStreaming extends SparkTest {
+  import DicomDataSourceTestUtils._
+  describe("Spark") {
     it("reads a stream of DICOM files") {
       val df = spark.readStream
-        .schema(DicomDataSource.schema(false))
+        .schema(
+          DicomDataSource.schema(
+            includePixelData = false,
+            includePrivateTags = false,
+            includeContent = false
+          )
+        )
         .format("dicomFile")
         .load(SOME_DICOM_FOLDER_FILEPATH)
         .select(

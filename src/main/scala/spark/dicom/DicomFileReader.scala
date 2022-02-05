@@ -17,6 +17,7 @@
 package ai.kaiko.spark.dicom
 
 import ai.kaiko.dicom.DicomStandardDictionary
+import ai.kaiko.dicom.json.DicomJson
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.fs.Path
 import org.apache.spark.broadcast.Broadcast
@@ -37,6 +38,8 @@ import java.net.URI
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
+
+import collection.JavaConverters._
 
 sealed trait FieldWriteResult
 sealed case class FieldWritten() extends FieldWriteResult
@@ -64,6 +67,7 @@ object DicomFileReader {
   )
   // other fields
   val FIELD_NAME_CONTENT = "content"
+  val FIELD_NAME_PRIVATETAGS = "privateTagsJson"
 
   def readDicomFile(
       dataSchema: StructType,
@@ -156,6 +160,46 @@ object DicomFileReader {
           val writer = InternalRow.getWriter(i, BinaryType)
           writer(mutableRow, bytes)
           FieldWritten()
+        }
+        case (FIELD_NAME_PRIVATETAGS, i) => {
+          tryAttrs
+            .map(attrs => {
+              // list private tags
+              // they are the tags in attrs which don't match any tag in the standard dicom dictionary
+              val privateTags: Array[Int] =
+                attrs.tags
+                  .filter(tag =>
+                    DicomStandardDictionary.elements.find(_.tag == tag).isEmpty
+                  )
+              // build attrs of only those tags
+              val privateAttrs: dcmData.Attributes = {
+                val privateAttrs = new dcmData.Attributes(privateTags.length)
+                privateTags.foreach(tag => {
+                  Option(attrs.getPrivateCreator(tag)) match {
+                    case Some(privateCreator) => {
+                      privateAttrs.addSelected(attrs, privateCreator, tag)
+                    }
+                    case None => privateAttrs.addSelected(attrs, tag)
+                  }
+                })
+                privateAttrs
+              }
+              // write out to JSON
+              val jsonStr: String = {
+                val jsonObject = DicomJson.attrs2jsonobject(privateAttrs)
+                val sw = new java.io.StringWriter
+                val jwf = javax.json.Json.createWriterFactory(Map.empty.asJava)
+                val jw = jwf.createWriter(sw)
+                jw.write(jsonObject)
+                jw.close
+                sw.toString
+              }
+              // write JSON string to row
+              val writer = InternalRow.getWriter(i, StringType)
+              writer(mutableRow, UTF8String.fromString(jsonStr))
+              FieldWritten()
+            })
+            .getOrElse(FieldSkipped())
         }
         // any other requested field should be a DICOM keyword
         case (keyword, i) => {

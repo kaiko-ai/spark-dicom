@@ -31,8 +31,6 @@ import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types._
 import org.apache.spark.util.SerializableConfiguration
 
-import scala.util.Try
-
 class DicomFileFormat
     extends FileFormat
     with DataSourceRegister
@@ -44,14 +42,8 @@ class DicomFileFormat
       sparkSession: SparkSession,
       options: Map[String, String],
       files: Seq[FileStatus]
-  ): Option[StructType] = {
-    val withPixelData: Boolean = options
-      .get(DicomDataSource.OPTION_WITHPIXELDATA.toLowerCase)
-      .flatMap(b => Try(b.toBoolean).toOption)
-      .getOrElse(false)
-
-    Some(DicomDataSource.schema(withPixelData))
-  }
+  ): Option[StructType] =
+    Some(DicomDataSource.schema(options))
 
   override protected def buildReader(
       sparkSession: SparkSession,

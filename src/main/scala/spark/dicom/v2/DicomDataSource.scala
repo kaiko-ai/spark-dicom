@@ -30,11 +30,14 @@ import org.dcm4che3.data.Keyword
 import org.dcm4che3.data.Tag
 import org.dcm4che3.data.VR
 
-object DicomDataSource {
-  val OPTION_WITHPIXELDATA = "includePixelData"
-  val OPTION_WITHCONTENT = "includeContent"
+import scala.util.Try
 
-  def schema(withPixelData: Boolean = false, withContent: Boolean = false) = {
+object DicomDataSource {
+  val OPTION_INCLUDEPIXELDATA = "includePixelData"
+  val OPTION_INCLUDECONTENT = "includeContent"
+  val OPTION_INCLUDEPRIVATETAGS = "includePrivateTags"
+
+  lazy val defaultFields = {
     val fields = DicomStandardDictionary.elements
       .collect {
         case stdElem if stdElem.vr.isRight =>
@@ -54,17 +57,59 @@ object DicomDataSource {
             nullable = true
           )
       }
-    val selectedFields =
-      if (withPixelData) fields
-      else fields.filter(p => p.name != Keyword.valueOf(Tag.PixelData))
+    fields
+  }
 
-    val metadataFields = DicomFileReader.METADATA_FIELDS
+  def schema(
+      includePixelData: Boolean,
+      includeContent: Boolean,
+      includePrivateTags: Boolean
+  ): StructType = {
+    // for now, only PixelData is a field in standard DICOM that can be removed
+    val selectedFields: Array[StructField] =
+      (
+        if (includePixelData) defaultFields
+        else defaultFields.filter(p => p.name != Keyword.valueOf(Tag.PixelData))
+      )
 
-    val otherFields: Array[StructField] =
-      if (withContent) Array(StructField("content", BinaryType))
-      else Array.empty
+    // build optional fields when included
+    val optionalFields: Array[StructField] = Array(
+      if (includeContent)
+        Some(
+          StructField(DicomFileReader.FIELD_NAME_CONTENT, BinaryType)
+        )
+      else None,
+      if (includePrivateTags)
+        Some(StructField(DicomFileReader.FIELD_NAME_PRIVATETAGS, StringType))
+      else None
+    ).collect { case Some(value) => value }
 
-    new StructType(metadataFields ++ selectedFields ++ otherFields)
+    new StructType(
+      DicomFileReader.METADATA_FIELDS ++ selectedFields ++ optionalFields
+    )
+  }
+
+  def schema(options: Map[String, String]): StructType = {
+    def getBoolOpt(key: String): Boolean = options
+      .get(key.toLowerCase)
+      .flatMap(b => Try(b.toBoolean).toOption)
+      .getOrElse(false)
+
+    val includePixelData: Boolean = getBoolOpt(
+      DicomDataSource.OPTION_INCLUDEPIXELDATA
+    )
+    val includeContent: Boolean = getBoolOpt(
+      DicomDataSource.OPTION_INCLUDECONTENT.toLowerCase
+    )
+    val includePrivateTags: Boolean = getBoolOpt(
+      DicomDataSource.OPTION_INCLUDEPRIVATETAGS.toLowerCase
+    )
+
+    DicomDataSource.schema(
+      includePixelData = includePixelData,
+      includeContent = includeContent,
+      includePrivateTags = includePrivateTags
+    )
   }
 }
 
