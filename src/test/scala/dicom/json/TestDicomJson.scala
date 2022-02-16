@@ -87,6 +87,45 @@ class TestDicomJson extends AnyFunSpec {
             .getString(0) === "test1"
         )
       }
+      it("converts nested DICOM Sequence to JsonArray") {
+        val someSeq = {
+          val attrs = new Attributes
+          val seqLevel1 =
+            attrs.newSequence(Tag.DeidentificationMethodCodeSequence, 1)
+          val nestedAttrLevel1 = new Attributes
+          val seqLevel2 = nestedAttrLevel1.newSequence(
+            Tag.DeidentificationMethodCodeSequence,
+            1
+          )
+          val nestedAttrLevel2 = new Attributes
+
+          nestedAttrLevel2.setString(0x300b1001, VR.UT, "test1")
+
+          seqLevel1.add(nestedAttrLevel1)
+          seqLevel2.add(nestedAttrLevel2)
+          seqLevel1
+        }
+        val jsonArr = DicomJson.seq2jsonarray(someSeq)
+        assert(
+          jsonArr
+            .getJsonObject(0)
+            .getJsonObject("00120064")
+            .getJsonArray("Value")
+            .getJsonObject(0)
+            .getJsonObject("300B1001")
+            .getString("vr") === "UT"
+        )
+        assert(
+          jsonArr
+            .getJsonObject(0)
+            .getJsonObject("00120064")
+            .getJsonArray("Value")
+            .getJsonObject(0)
+            .getJsonObject("300B1001")
+            .getJsonArray("Value")
+            .getString(0) === "test1"
+        )
+      }
       it("can be used to convert to String") {
         val someSeq = {
           val attrs = new Attributes
