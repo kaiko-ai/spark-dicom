@@ -159,18 +159,8 @@ object DicomSparkMapper {
             UTF8String.fromString(
               Option(attrs.getSequence(tag))
                 .map(seq => {
-                  val sw = new java.io.StringWriter
-                  val jab = javax.json.Json.createArrayBuilder()
-                  val jwf =
-                    javax.json.Json.createWriterFactory(Map.empty.asJava)
-                  val jw = jwf.createWriter(sw)
-
-                  seq.asScala.toList.foreach(attr => {
-                    jab.add(DicomJson.attrs2jsonobject(attr))
-                  })
-                  jw.write(jab.build)
-                  jw.close
-                  sw.toString
+                  val ja = DicomJson.seq2jsonarray(seq)
+                  DicomJson.json2string(ja)
                 })
                 .getOrElse("")
             )

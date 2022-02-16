@@ -19,10 +19,10 @@ package ai.kaiko.dicom.json
 import org.dcm4che3.data
 import org.dcm4che3.json.JSONWriter
 
-import javax.json.Json
-import javax.json.JsonObject
+import javax.json.{Json, JsonObject, JsonArray}
 
 import collection.JavaConverters._
+import javax.json.JsonStructure
 
 object DicomJson {
   def attrs2jsonobject(attrs: data.Attributes): JsonObject = {
@@ -37,5 +37,23 @@ object DicomJson {
     val bais = new java.io.ByteArrayInputStream(baos.toByteArray)
     val reader = javax.json.Json.createReader(bais)
     reader.readObject
+  }
+
+  def seq2jsonarray(seq: data.Sequence): JsonArray = {
+    val jab = javax.json.Json.createArrayBuilder()
+    seq.asScala.toList.foreach(attr => {
+      jab.add(DicomJson.attrs2jsonobject(attr))
+    })
+    jab.build
+  }
+  
+  def json2string(json: JsonStructure): String = {
+    val sw = new java.io.StringWriter
+    val jwf =
+      javax.json.Json.createWriterFactory(Map.empty.asJava)
+    val jw = jwf.createWriter(sw)   
+    jw.write(json)
+    jw.close
+    sw.toString
   }
 }
