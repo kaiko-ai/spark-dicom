@@ -73,7 +73,12 @@ class TestDicomJson extends AnyFunSpec {
           seq
         }
         val jsonArr = DicomJson.seq2jsonarray(someSeq)
-        assert(jsonArr.getJsonObject(0).getJsonObject("300B1001").getString("vr") === "UT")
+        assert(
+          jsonArr
+            .getJsonObject(0)
+            .getJsonObject("300B1001")
+            .getString("vr") === "UT"
+        )
         assert(
           jsonArr
             .getJsonObject(0)

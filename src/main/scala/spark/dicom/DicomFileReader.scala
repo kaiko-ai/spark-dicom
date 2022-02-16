@@ -39,8 +39,6 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-import collection.JavaConverters._
-
 sealed trait FieldWriteResult
 sealed case class FieldWritten() extends FieldWriteResult
 sealed case class FieldIgnored() extends FieldWriteResult

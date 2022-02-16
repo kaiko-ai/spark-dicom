@@ -27,8 +27,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
-import collection.JavaConverters._
-
 /** @param sparkDataType
   *   Spark DataType of the output of the reader function
   * @param reader
