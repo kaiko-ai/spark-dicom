@@ -16,6 +16,7 @@
 // under the License.
 package ai.kaiko.spark.dicom
 
+import ai.kaiko.dicom.json.DicomJson
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types._
@@ -146,6 +147,19 @@ object DicomSparkMapper {
                     )
                     .format(DateTimeFormatter.ISO_LOCAL_TIME)
                 )
+                .getOrElse("")
+            )
+        )
+      case SQ =>
+        DicomSparkMapper(
+          sparkDataType = StringType,
+          reader = (attrs, tag) =>
+            UTF8String.fromString(
+              Option(attrs.getSequence(tag))
+                .map(seq => {
+                  val ja = DicomJson.seq2jsonarray(seq)
+                  DicomJson.json2string(ja)
+                })
                 .getOrElse("")
             )
         )

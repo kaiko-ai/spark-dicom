@@ -29,6 +29,7 @@ import java.io.File
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.nio.file.Files
 
 /** Utils for testing the DICOM data source
   */
@@ -49,6 +50,18 @@ object DicomDataSourceTestUtils {
     "src/test/resources/Pancreatic-CT-CBCT-SEG/Pancreas-CT-CB_001/07-06-2012-NA-PANCREAS-59677/201.000000-PANCREAS DI iDose 3-97846/*"
 
   val SOME_NONDICOM_FILEPATH = "src/test/resources/nonDicom/test.txt"
+
+  val SOME_META_ATTRS = {
+    val attrs = new Attributes
+    attrs.setValue(Tag.FileMetaInformationGroupLength, VR.UL, 204)
+    attrs.setValue(
+      Tag.FileMetaInformationVersion,
+      VR.OB,
+      Array[Byte](0x0, 0x1)
+    )
+    attrs.setValue(Tag.TransferSyntaxUID, VR.UI, UID.ExplicitVRLittleEndian)
+    attrs
+  }
 }
 
 class TestDicomDataSourceBatch extends SparkTest {
@@ -241,6 +254,7 @@ class TestDicomDataSourceBatch extends SparkTest {
 }
 
 class TestDicomDataSourcePrivateTags extends SparkTest {
+  import DicomDataSourceTestUtils._
   describe("Spark") {
     it("allows reading private tags when specified explicitly in config") {
       assert(
@@ -256,30 +270,18 @@ class TestDicomDataSourcePrivateTags extends SparkTest {
       )
 
       // make a DICOM file with some private data for test
-      import java.nio.file.Files
       val tmpFile =
         Files.createTempFile("spark-dicom-test", "privatetags.dcm")
       val tmpFilePath = tmpFile.toAbsolutePath.toUri.toString
       testLogger.log(Priority.INFO, f"Writing attribute file to $tmpFilePath")
 
-      val someMetaAttrs = {
-        val attrs = new Attributes
-        attrs.setValue(Tag.FileMetaInformationGroupLength, VR.UL, 204)
-        attrs.setValue(
-          Tag.FileMetaInformationVersion,
-          VR.OB,
-          Array[Byte](0x0, 0x1)
-        )
-        attrs.setValue(Tag.TransferSyntaxUID, VR.UI, UID.ExplicitVRLittleEndian)
-        attrs
-      }
       val someAttrs = {
         val attrs = new Attributes
         attrs.setString("someCreator", 0x00091000, VR.DA, "20220101")
         attrs
       }
       val dcmOutput = new DicomOutputStream(tmpFile.toFile)
-      dcmOutput.writeDataset(someMetaAttrs, someAttrs)
+      dcmOutput.writeDataset(SOME_META_ATTRS, someAttrs)
       dcmOutput.flush
 
       val row = spark.read
@@ -346,6 +348,149 @@ class TestDicomDataSourceStreaming extends SparkTest {
 
       assert(row.getAs[String]("path").endsWith(SOME_NONDICOM_FILEPATH))
       assert(!row.getAs[Boolean]("isDicom"))
+    }
+  }
+}
+
+class TestDicomDataSourceSequenceTags extends SparkTest {
+  import DicomDataSourceTestUtils._
+  describe("Spark") {
+    it("allows reading sequence tags as JSON") {
+      // make a DICOM file with some sequence data for test
+      import java.nio.file.Files
+      val tmpFile =
+        Files.createTempFile("spark-dicom-test", "sequencetags.dcm")
+      val tmpFilePath = tmpFile.toAbsolutePath.toUri.toString
+      testLogger.log(Priority.INFO, f"Writing attribute file to $tmpFilePath")
+
+      val someAttrs = {
+        val attrs = new Attributes
+
+        val seq = attrs.newSequence(Tag.DeidentificationMethodCodeSequence, 2)
+
+        val nestedAttr1 = new Attributes
+        nestedAttr1.setValue(Tag.DeidentificationMethod, VR.LO, "Method1")
+        nestedAttr1.setValue(Tag.DeidentificationAction, VR.CS, "Action1")
+
+        val nestedAttr2 = new Attributes
+        nestedAttr2.setValue(Tag.DeidentificationMethod, VR.LO, "Method2")
+        nestedAttr2.setValue(Tag.DeidentificationAction, VR.CS, "Action2")
+
+        seq.add(nestedAttr1)
+        seq.add(nestedAttr2)
+
+        attrs
+      }
+      val dcmOutput = new DicomOutputStream(tmpFile.toFile)
+      dcmOutput.writeDataset(SOME_META_ATTRS, someAttrs)
+      dcmOutput.flush
+
+      val row = spark.read
+        .format("dicomFile")
+        .load(tmpFile.toAbsolutePath.toUri.toString)
+        .select(
+          col("path"),
+          col(keywordOf(Tag.DeidentificationMethodCodeSequence))
+        )
+        .first
+
+      assert(
+        row
+          .getAs[String](keywordOf(Tag.DeidentificationMethodCodeSequence))
+          === "[{\"00080307\":{\"vr\":\"CS\",\"Value\":[\"Action1\"]},\"00120063\":{\"vr\":\"LO\",\"Value\":[\"Method1\"]}},{\"00080307\":{\"vr\":\"CS\",\"Value\":[\"Action2\"]},\"00120063\":{\"vr\":\"LO\",\"Value\":[\"Method2\"]}}]"
+      )
+    }
+    it("allows reading nested sequence tags as JSON") {
+      // make a DICOM file with some sequence data for test
+      val tmpFile =
+        Files.createTempFile("spark-dicom-test", "nestedsequencetags.dcm")
+      val tmpFilePath = tmpFile.toAbsolutePath.toUri.toString
+      testLogger.log(Priority.INFO, f"Writing attribute file to $tmpFilePath")
+
+      val someAttrs = {
+        val attrs = new Attributes
+
+        attrs.setValue(Tag.DeidentificationMethod, VR.LO, "UnrelatedToSequence")
+
+        val seq = attrs.newSequence(Tag.DeidentificationMethodCodeSequence, 1)
+
+        val nestedAttr = new Attributes
+        nestedAttr.setValue(Tag.DeidentificationMethod, VR.LO, "Level1Method")
+
+        val nestedSeq =
+          nestedAttr.newSequence(Tag.DeidentificationActionSequence, 1)
+
+        val nestedSeqAttr1 = new Attributes
+        nestedSeqAttr1.setValue(
+          Tag.DeidentificationAction,
+          VR.CS,
+          "Level2Action1"
+        )
+
+        val nestedSeqAttr2 = new Attributes
+        nestedSeqAttr2.setValue(
+          Tag.DeidentificationAction,
+          VR.CS,
+          "Level2Action2"
+        )
+
+        nestedSeq.add(nestedSeqAttr1)
+        nestedSeq.add(nestedSeqAttr2)
+
+        seq.add(nestedAttr)
+
+        attrs
+      }
+      val dcmOutput = new DicomOutputStream(tmpFile.toFile)
+      dcmOutput.writeDataset(SOME_META_ATTRS, someAttrs)
+      dcmOutput.flush
+
+      val row = spark.read
+        .format("dicomFile")
+        .load(tmpFile.toAbsolutePath.toUri.toString)
+        .select(
+          col("path"),
+          col(keywordOf(Tag.DeidentificationMethodCodeSequence))
+        )
+        .first
+
+      assert(
+        row
+          .getAs[String](keywordOf(Tag.DeidentificationMethodCodeSequence))
+          === "[{\"00080305\":{\"vr\":\"SQ\",\"Value\":[{\"00080307\":{\"vr\":\"CS\",\"Value\":[\"Level2Action1\"]}},{\"00080307\":{\"vr\":\"CS\",\"Value\":[\"Level2Action2\"]}}]},\"00120063\":{\"vr\":\"LO\",\"Value\":[\"Level1Method\"]}}]"
+      )
+    }
+    it("allows reading empty sequence tags as JSON") {
+      // make a DICOM file with some sequence data for test
+      val tmpFile =
+        Files.createTempFile("spark-dicom-test", "nestedsequencetags.dcm")
+      val tmpFilePath = tmpFile.toAbsolutePath.toUri.toString
+      testLogger.log(Priority.INFO, f"Writing attribute file to $tmpFilePath")
+
+      val someAttrs = {
+        val attrs = new Attributes
+        val seq = attrs.newSequence(Tag.DeidentificationMethodCodeSequence, 1)
+
+        attrs
+      }
+      val dcmOutput = new DicomOutputStream(tmpFile.toFile)
+      dcmOutput.writeDataset(SOME_META_ATTRS, someAttrs)
+      dcmOutput.flush
+
+      val row = spark.read
+        .format("dicomFile")
+        .load(tmpFile.toAbsolutePath.toUri.toString)
+        .select(
+          col("path"),
+          col(keywordOf(Tag.DeidentificationMethodCodeSequence))
+        )
+        .first
+
+      assert(
+        row
+          .getAs[String](keywordOf(Tag.DeidentificationMethodCodeSequence))
+          === "[]"
+      )
     }
   }
 }

@@ -39,8 +39,6 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-import collection.JavaConverters._
-
 sealed trait FieldWriteResult
 sealed case class FieldWritten() extends FieldWriteResult
 sealed case class FieldIgnored() extends FieldWriteResult
@@ -187,12 +185,7 @@ object DicomFileReader {
               // write out to JSON
               val jsonStr: String = {
                 val jsonObject = DicomJson.attrs2jsonobject(privateAttrs)
-                val sw = new java.io.StringWriter
-                val jwf = javax.json.Json.createWriterFactory(Map.empty.asJava)
-                val jw = jwf.createWriter(sw)
-                jw.write(jsonObject)
-                jw.close
-                sw.toString
+                DicomJson.json2string(jsonObject)
               }
               // write JSON string to row
               val writer = InternalRow.getWriter(i, StringType)
