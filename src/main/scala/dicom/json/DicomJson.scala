@@ -60,58 +60,9 @@ object DicomJson {
     sw.toString
   }
 
-  def deepRenameJsonKeys(
-      jsonArr: JsonArray,
-      renameF: String => String
-  ): JsonArray = {
-    val outBuilder = Json.createArrayBuilder
-    jsonArr.forEach(jsonVal => {
-      val outVal = jsonVal.getValueType match {
-        case JsonValue.ValueType.OBJECT =>
-          deepRenameJsonKeys(jsonVal.asJsonObject, renameF)
-        case JsonValue.ValueType.ARRAY =>
-          deepRenameJsonKeys(jsonVal.asJsonArray, renameF)
-        case _ => jsonVal
-      }
-      outBuilder.add(outVal)
-    })
-    outBuilder.build
-  }
-
-  def deepRenameJsonKeys(
-      jsonObj: JsonObject,
-      renameF: String => String
-  ): JsonObject = {
-    val outBuilder = javax.json.Json.createObjectBuilder
-    jsonObj.entrySet.asScala.foreach(entry => {
-      val outKey = renameF(entry.getKey)
-      val outValue = entry.getValue.getValueType match {
-        case JsonValue.ValueType.OBJECT =>
-          deepRenameJsonKeys(entry.getValue.asJsonObject, renameF)
-        case JsonValue.ValueType.ARRAY =>
-          deepRenameJsonKeys(entry.getValue.asJsonArray, renameF)
-        case _ => entry.getValue
-      }
-      outBuilder.add(outKey, outValue)
-    })
-    outBuilder.build
-  }
-
   def deepRenameJsonKeyTagToKeyword(
       jsonStruct: JsonStructure
   ): JsonStructure = {
-    def renameTagToKeywordOrFallback(key: String) =
-      scala.util
-        .Try(Integer.parseInt(key, 16))
-        .map(intTag =>
-          DicomStandardDictionary.tagMap
-            .get(intTag)
-            .map(elemDict => elemDict.keyword)
-        )
-        .toOption
-        .flatten
-        .getOrElse(key)
-
     jsonStruct match {
       case jsonObj: JsonObject =>
         deepRenameJsonKeys(jsonObj, renameTagToKeywordOrFallback(_))
@@ -119,4 +70,53 @@ object DicomJson {
         deepRenameJsonKeys(jsonArr, renameTagToKeywordOrFallback(_))
     }
   }
+
+  def deepRenameJsonKeys(
+      jsonStruct: JsonStructure,
+      renameF: String => String
+  ): JsonStructure = {
+    jsonStruct match {
+      case jsonArr: JsonArray => {
+        val outBuilder = Json.createArrayBuilder
+        jsonArr.forEach(jsonVal => {
+          val outVal = jsonVal.getValueType match {
+            case JsonValue.ValueType.OBJECT =>
+              deepRenameJsonKeys(jsonVal.asJsonObject, renameF)
+            case JsonValue.ValueType.ARRAY =>
+              deepRenameJsonKeys(jsonVal.asJsonArray, renameF)
+            case _ => jsonVal
+          }
+          outBuilder.add(outVal)
+        })
+        outBuilder.build
+      }
+      case jsonObj: JsonObject => {
+        val outBuilder = Json.createObjectBuilder
+        jsonObj.entrySet.asScala.foreach(entry => {
+          val outKey = renameF(entry.getKey)
+          val outValue = entry.getValue.getValueType match {
+            case JsonValue.ValueType.OBJECT =>
+              deepRenameJsonKeys(entry.getValue.asJsonObject, renameF)
+            case JsonValue.ValueType.ARRAY =>
+              deepRenameJsonKeys(entry.getValue.asJsonArray, renameF)
+            case _ => entry.getValue
+          }
+          outBuilder.add(outKey, outValue)
+        })
+        outBuilder.build
+      }
+    }
+  }
+
+  def renameTagToKeywordOrFallback(key: String) =
+    scala.util
+      .Try(Integer.parseInt(key, 16))
+      .map(intTag =>
+        DicomStandardDictionary.tagMap
+          .get(intTag)
+          .map(elemDict => elemDict.keyword)
+      )
+      .toOption
+      .flatten
+      .getOrElse(key)
 }
