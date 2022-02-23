@@ -157,7 +157,9 @@ object DicomSparkMapper {
             UTF8String.fromString(
               Option(attrs.getSequence(tag))
                 .map(seq => {
-                  val ja = DicomJson.seq2jsonarray(seq)
+                  val ja = DicomJson.deepRenameJsonKeyTagToKeyword(
+                    DicomJson.seq2jsonarray(seq)
+                  )
                   DicomJson.json2string(ja)
                 })
                 .getOrElse("")
