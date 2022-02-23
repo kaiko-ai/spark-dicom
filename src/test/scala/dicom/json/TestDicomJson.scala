@@ -157,6 +157,7 @@ class TestDicomJson extends AnyFunSpec {
       }
     }
     describe("deepRenameJsonKeyTagToKeyword") {
+      val renameF = DicomJson.renameTagToKeywordOrFallback(_)
       it("Keeps non-DICOM tag in JsonObject") {
         val someAttrs = {
           val attrs = new Attributes
@@ -165,7 +166,7 @@ class TestDicomJson extends AnyFunSpec {
         }
         val jsonObj = DicomJson.attrs2jsonobject(someAttrs)
         val replacedJsonObj =
-          DicomJson.deepRenameJsonKeyTagToKeyword(jsonObj).asJsonObject
+          DicomJson.deepRenameJsonKeys(jsonObj, renameF).asJsonObject
         assert(
           replacedJsonObj.getJsonObject("300B1001").getString("vr") === "UT"
         )
@@ -184,7 +185,7 @@ class TestDicomJson extends AnyFunSpec {
         }
         val jsonObj = DicomJson.attrs2jsonobject(someAttrs)
         val replacedJsonObj =
-          DicomJson.deepRenameJsonKeyTagToKeyword(jsonObj).asJsonObject
+          DicomJson.deepRenameJsonKeys(jsonObj, renameF).asJsonObject
         assert(
           replacedJsonObj
             .getJsonObject("ConversionType")
@@ -217,7 +218,7 @@ class TestDicomJson extends AnyFunSpec {
         }
         val jsonArr = DicomJson.seq2jsonarray(someSeq)
         val replacedJsonArr =
-          DicomJson.deepRenameJsonKeyTagToKeyword(jsonArr).asJsonArray
+          DicomJson.deepRenameJsonKeys(jsonArr, renameF).asJsonArray
         assert(
           replacedJsonArr
             .getJsonObject(0)

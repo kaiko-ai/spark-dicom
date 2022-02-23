@@ -60,17 +60,6 @@ object DicomJson {
     sw.toString
   }
 
-  def deepRenameJsonKeyTagToKeyword(
-      jsonStruct: JsonStructure
-  ): JsonStructure = {
-    jsonStruct match {
-      case jsonObj: JsonObject =>
-        deepRenameJsonKeys(jsonObj, renameTagToKeywordOrFallback(_))
-      case jsonArr: JsonArray =>
-        deepRenameJsonKeys(jsonArr, renameTagToKeywordOrFallback(_))
-    }
-  }
-
   def deepRenameJsonKeys(
       jsonStruct: JsonStructure,
       renameF: String => String
