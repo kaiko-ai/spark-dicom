@@ -16,6 +16,7 @@
 // under the License.
 package ai.kaiko.dicom.json
 
+import ai.kaiko.dicom.DicomStandardDictionary
 import org.dcm4che3.data
 import org.dcm4che3.json.JSONWriter
 
@@ -23,6 +24,7 @@ import javax.json.Json
 import javax.json.JsonArray
 import javax.json.JsonObject
 import javax.json.JsonStructure
+import javax.json.JsonValue
 
 import collection.JavaConverters._
 
@@ -37,12 +39,12 @@ object DicomJson {
     generator.flush
 
     val bais = new java.io.ByteArrayInputStream(baos.toByteArray)
-    val reader = javax.json.Json.createReader(bais)
+    val reader = Json.createReader(bais)
     reader.readObject
   }
 
   def seq2jsonarray(seq: data.Sequence): JsonArray = {
-    val jab = javax.json.Json.createArrayBuilder()
+    val jab = Json.createArrayBuilder()
     seq.asScala.toList.foreach(attr => {
       jab.add(DicomJson.attrs2jsonobject(attr))
     })
@@ -51,11 +53,59 @@ object DicomJson {
 
   def json2string(json: JsonStructure): String = {
     val sw = new java.io.StringWriter
-    val jwf =
-      javax.json.Json.createWriterFactory(Map.empty.asJava)
+    val jwf = Json.createWriterFactory(Map.empty.asJava)
     val jw = jwf.createWriter(sw)
     jw.write(json)
     jw.close
     sw.toString
   }
+
+  def deepRenameJsonKeys(
+      jsonStruct: JsonStructure,
+      renameF: String => String
+  ): JsonStructure = {
+    jsonStruct match {
+      case jsonArr: JsonArray => {
+        val outBuilder = Json.createArrayBuilder
+        jsonArr.forEach(jsonVal => {
+          val outVal = jsonVal.getValueType match {
+            case JsonValue.ValueType.OBJECT =>
+              deepRenameJsonKeys(jsonVal.asJsonObject, renameF)
+            case JsonValue.ValueType.ARRAY =>
+              deepRenameJsonKeys(jsonVal.asJsonArray, renameF)
+            case _ => jsonVal
+          }
+          outBuilder.add(outVal)
+        })
+        outBuilder.build
+      }
+      case jsonObj: JsonObject => {
+        val outBuilder = Json.createObjectBuilder
+        jsonObj.entrySet.asScala.foreach(entry => {
+          val outKey = renameF(entry.getKey)
+          val outValue = entry.getValue.getValueType match {
+            case JsonValue.ValueType.OBJECT =>
+              deepRenameJsonKeys(entry.getValue.asJsonObject, renameF)
+            case JsonValue.ValueType.ARRAY =>
+              deepRenameJsonKeys(entry.getValue.asJsonArray, renameF)
+            case _ => entry.getValue
+          }
+          outBuilder.add(outKey, outValue)
+        })
+        outBuilder.build
+      }
+    }
+  }
+
+  def renameTagToKeywordOrFallback(key: String) =
+    scala.util
+      .Try(Integer.parseInt(key, 16))
+      .map(intTag =>
+        DicomStandardDictionary.tagMap
+          .get(intTag)
+          .map(elemDict => elemDict.keyword)
+      )
+      .toOption
+      .flatten
+      .getOrElse(key)
 }

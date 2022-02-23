@@ -156,5 +156,89 @@ class TestDicomJson extends AnyFunSpec {
         assert(jsonStr === "[]")
       }
     }
+    describe("deepRenameJsonKeyTagToKeyword") {
+      val renameF = DicomJson.renameTagToKeywordOrFallback(_)
+      it("Keeps non-DICOM tag in JsonObject") {
+        val someAttrs = {
+          val attrs = new Attributes
+          attrs.setString(0x300b1001, VR.UT, "test")
+          attrs
+        }
+        val jsonObj = DicomJson.attrs2jsonobject(someAttrs)
+        val replacedJsonObj =
+          DicomJson.deepRenameJsonKeys(jsonObj, renameF).asJsonObject
+        assert(
+          replacedJsonObj.getJsonObject("300B1001").getString("vr") === "UT"
+        )
+        assert(
+          replacedJsonObj
+            .getJsonObject("300B1001")
+            .getJsonArray("Value")
+            .getString(0) === "test"
+        )
+      }
+      it("Renames DICOM tag to DICOM keyword in JsonObject") {
+        val someAttrs = {
+          val attrs = new Attributes
+          attrs.setString(0x00080064, VR.CS, "test")
+          attrs
+        }
+        val jsonObj = DicomJson.attrs2jsonobject(someAttrs)
+        val replacedJsonObj =
+          DicomJson.deepRenameJsonKeys(jsonObj, renameF).asJsonObject
+        assert(
+          replacedJsonObj
+            .getJsonObject("ConversionType")
+            .getString("vr") === "CS"
+        )
+        assert(
+          replacedJsonObj
+            .getJsonObject("ConversionType")
+            .getJsonArray("Value")
+            .getString(0) === "test"
+        )
+      }
+      it("Renames DICOM tag to DICOM keyword in JsonArray") {
+        val someSeq = {
+          val attrs = new Attributes
+          val seqLevel1 =
+            attrs.newSequence(Tag.DeidentificationMethodCodeSequence, 1)
+          val nestedAttrLevel1 = new Attributes
+          val seqLevel2 = nestedAttrLevel1.newSequence(
+            Tag.DeidentificationMethodCodeSequence,
+            1
+          )
+          val nestedAttrLevel2 = new Attributes
+
+          nestedAttrLevel2.setString(0x00080064, VR.CS, "test1")
+
+          seqLevel1.add(nestedAttrLevel1)
+          seqLevel2.add(nestedAttrLevel2)
+          seqLevel1
+        }
+        val jsonArr = DicomJson.seq2jsonarray(someSeq)
+        val replacedJsonArr =
+          DicomJson.deepRenameJsonKeys(jsonArr, renameF).asJsonArray
+        assert(
+          replacedJsonArr
+            .getJsonObject(0)
+            .getJsonObject("DeidentificationMethodCodeSequence")
+            .getJsonArray("Value")
+            .getJsonObject(0)
+            .getJsonObject("ConversionType")
+            .getString("vr") === "CS"
+        )
+        assert(
+          replacedJsonArr
+            .getJsonObject(0)
+            .getJsonObject("DeidentificationMethodCodeSequence")
+            .getJsonArray("Value")
+            .getJsonObject(0)
+            .getJsonObject("ConversionType")
+            .getJsonArray("Value")
+            .getString(0) === "test1"
+        )
+      }
+    }
   }
 }

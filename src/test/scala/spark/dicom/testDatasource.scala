@@ -397,7 +397,7 @@ class TestDicomDataSourceSequenceTags extends SparkTest {
       assert(
         row
           .getAs[String](keywordOf(Tag.DeidentificationMethodCodeSequence))
-          === "[{\"00080307\":{\"vr\":\"CS\",\"Value\":[\"Action1\"]},\"00120063\":{\"vr\":\"LO\",\"Value\":[\"Method1\"]}},{\"00080307\":{\"vr\":\"CS\",\"Value\":[\"Action2\"]},\"00120063\":{\"vr\":\"LO\",\"Value\":[\"Method2\"]}}]"
+          === "[{\"DeidentificationAction\":{\"vr\":\"CS\",\"Value\":[\"Action1\"]},\"DeidentificationMethod\":{\"vr\":\"LO\",\"Value\":[\"Method1\"]}},{\"DeidentificationAction\":{\"vr\":\"CS\",\"Value\":[\"Action2\"]},\"DeidentificationMethod\":{\"vr\":\"LO\",\"Value\":[\"Method2\"]}}]"
       )
     }
     it("allows reading nested sequence tags as JSON") {
@@ -457,7 +457,7 @@ class TestDicomDataSourceSequenceTags extends SparkTest {
       assert(
         row
           .getAs[String](keywordOf(Tag.DeidentificationMethodCodeSequence))
-          === "[{\"00080305\":{\"vr\":\"SQ\",\"Value\":[{\"00080307\":{\"vr\":\"CS\",\"Value\":[\"Level2Action1\"]}},{\"00080307\":{\"vr\":\"CS\",\"Value\":[\"Level2Action2\"]}}]},\"00120063\":{\"vr\":\"LO\",\"Value\":[\"Level1Method\"]}}]"
+          === "[{\"DeidentificationActionSequence\":{\"vr\":\"SQ\",\"Value\":[{\"DeidentificationAction\":{\"vr\":\"CS\",\"Value\":[\"Level2Action1\"]}},{\"DeidentificationAction\":{\"vr\":\"CS\",\"Value\":[\"Level2Action2\"]}}]},\"DeidentificationMethod\":{\"vr\":\"LO\",\"Value\":[\"Level1Method\"]}}]"
       )
     }
     it("allows reading empty sequence tags as JSON") {
