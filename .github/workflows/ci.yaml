@@ -45,4 +45,4 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Check license headers
-        run: bash scripts/check_license_headers.sh
+        run: ./scripts/check_license_headers.sh
