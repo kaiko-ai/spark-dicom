@@ -39,6 +39,15 @@ jobs:
         run: nix-shell --run "scalafmt --test"
       - name: Lint (scalafix)
         run: nix-shell --run "sbt 'scalafix -r OrganizeImports --check'"
+  shellcheck:
+    runs-on: ubuntu-latest
+    container:
+        image: koalaman/shellcheck-alpine:v0.8.0@sha256:7d818fda19f5d8658fbb61b53f106cde88eda4b977b1db916ad9d3ccfa1c3ac6
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Shellcheck scripts
+        run: ./scripts/shellcheck_all.sh
   check-license:
     runs-on: ubuntu-latest
     steps:
